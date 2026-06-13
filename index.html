@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>360</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="favicon-32x32.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/android.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SPLASH
+══════════════════════════════════════ -->
+<div id="splash">
+  <div class="splash-num" id="s3">3</div>
+  <div class="splash-num" id="s6">6</div>
+  <div class="splash-num" id="s0">0</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════ -->
+<div id="app-shell">
+
+  <!-- TOP HEADER -->
+  <header id="app-header">
+    <div class="header-logo">360</div>
+    <div class="header-actions">
+      <div id="user-area">
+        <button class="header-icon-btn" id="signInHeaderBtn" title="Sign In">👤</button>
+      </div>
+      <button class="header-icon-btn" id="settingsHeaderBtn" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main id="page-content">
+
+    <!-- ── HOME PAGE ── -->
+    <div class="page active" id="page-home">
+      <div class="home-page">
+        <div class="home-top-row">
+          <div class="home-clock" id="clock">--:--</div>
+          <div class="home-weather" id="weatherChip">🌤 --°</div>
+        </div>
+
+        <div class="home-logo-wrap">
+          <div class="home-logo">360</div>
+          <div class="home-tagline">Search · AI · Everything</div>
+        </div>
+
+        <div class="search-bar-wrap">
+          <form id="home-search-form">
+            <div class="search-bar">
+              <span class="search-bar-icon">🔍</span>
+              <input
+                id="home-search-input"
+                type="text"
+                placeholder="Search with 360..."
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                enterkeyhint="search"
+              />
+              <button class="search-bar-btn" type="submit">Go</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="quick-tiles">
+          <a class="quick-tile" data-page="ai">
+            <span class="qt-icon">🤖</span>
+            <span class="qt-label">AI</span>
+          </a>
+          <a class="quick-tile" href="https://360-search.com/weather" target="_blank">
+            <span class="qt-icon">🌤</span>
+            <span class="qt-label">Weather</span>
+          </a>
+          <a class="quick-tile" href="https://360-search.com/news" target="_blank">
+            <span class="qt-icon">📰</span>
+            <span class="qt-label">News</span>
+          </a>
+          <a class="quick-tile" data-page="games">
+            <span class="qt-icon">🎮</span>
+            <span class="qt-label">Games</span>
+          </a>
+          <a class="quick-tile" href="https://360-search.com/stocks" target="_blank">
+            <span class="qt-icon">📈</span>
+            <span class="qt-label">Stocks</span>
+          </a>
+          <a class="quick-tile" href="https://360-search.com/translator" target="_blank">
+            <span class="qt-icon">🌐</span>
+            <span class="qt-label">Translate</span>
+          </a>
+          <a class="quick-tile" href="https://360-search.com/chat" target="_blank">
+            <span class="qt-icon">💬</span>
+            <span class="qt-label">Chat</span>
+          </a>
+          <a class="quick-tile" href="https://360-search.com/url-shortener" target="_blank">
+            <span class="qt-icon">🔗</span>
+            <span class="qt-label">Shorten</span>
+          </a>
+        </div>
+
+        <div class="music-strip" id="musicStrip" style="display:none;">
+          <span class="music-strip-icon">🎵</span>
+          <span class="music-strip-label">Ambient Music</span>
+          <button class="music-toggle-btn" id="musicToggle">Off</button>
+        </div>
+
+        <audio id="bgMusic" src="https://360-search.com/calm360.mp3" loop></audio>
+      </div>
+    </div>
+
+    <!-- ── SEARCH PAGE ── -->
+    <div class="page" id="page-search">
+      <div class="search-page">
+        <div class="search-page-header">
+          <form id="search-page-form">
+            <div class="search-bar-compact">
+              <input
+                id="search-page-input"
+                type="text"
+                placeholder="Search..."
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                enterkeyhint="search"
+              />
+              <button class="search-bar-compact-btn" type="submit">🔍</button>
+            </div>
+          </form>
+          <div class="search-tabs">
+            <button class="search-tab-btn active" data-tab="all">All</button>
+            <button class="search-tab-btn" data-tab="images">Images</button>
+          </div>
+        </div>
+
+        <div class="search-results-body" id="search-results-body">
+          <div class="empty-state" id="search-empty">
+            <div class="empty-state-icon">🔍</div>
+            <div class="empty-state-title">Search anything</div>
+            <div class="empty-state-text">Type above and hit Go to search the web with 360.</div>
+          </div>
+          <div class="search-loader" id="search-loader">
+            <div class="spinner"></div>
+            Searching…
+          </div>
+          <div id="knowledge-panel-wrap"></div>
+          <div id="results-container"></div>
+          <div class="image-grid" id="image-results" style="display:none;"></div>
+          <div id="pagination-wrap" style="text-align:center;padding:20px 0;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AI PAGE ── -->
+    <div class="page" id="page-ai">
+      <div class="ai-page" style="height: calc(100dvh - var(--header-h) - var(--nav-h));">
+        <div class="ai-messages" id="ai-messages">
+          <div class="empty-state" id="ai-empty">
+            <div class="empty-state-icon">🤖</div>
+            <div class="empty-state-title">360 AI</div>
+            <div class="empty-state-text">Ask me anything. I'm here to help.</div>
+          </div>
+        </div>
+        <div class="ai-input-bar">
+          <textarea
+            class="ai-textarea"
+            id="ai-input"
+            placeholder="Ask AI anything..."
+            rows="1"
+            enterkeyhint="send"
+          ></textarea>
+          <button class="ai-send-btn" id="ai-send-btn">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GAMES PAGE ── -->
+    <div class="page" id="page-games">
+      <div class="section-header">
+        <div class="section-title">Games</div>
+      </div>
+      <div class="games-page">
+        <div class="games-grid" id="games-grid">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MORE PAGE (settings + extras) ── -->
+    <div class="page" id="page-more">
+      <div class="section-header">
+        <div class="section-title">Settings</div>
+      </div>
+      <div class="settings-page">
+
+        <!-- Profile -->
+        <div class="settings-group" id="profile-group">
+          <div class="settings-group-title">Account</div>
+          <div class="settings-link-row" id="profile-row" style="cursor:pointer;">
+            <span class="settings-link-icon">👤</span>
+            <div class="settings-row-left">
+              <div class="settings-row-label" id="profile-name-label">Sign in to 360</div>
+              <div class="settings-row-sub" id="profile-email-label">Sync your preferences across devices</div>
+            </div>
+            <span class="settings-link-chevron">›</span>
+          </div>
+        </div>
+
+        <!-- Appearance -->
+        <div class="settings-group">
+          <div class="settings-group-title">Appearance</div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-label">Dark Mode</div>
+              <div class="settings-row-sub">Switch to a dark theme</div>
+            </div>
+            <button class="toggle-switch" id="dark-toggle" role="switch" aria-label="Dark mode"></button>
+          </div>
+          <div class="theme-swatch-row" id="theme-swatch-row">
+            <div class="theme-swatch active" data-theme="ocean">
+              <div class="swatch-circle" style="background: linear-gradient(135deg,#3b82f6,#06b6d4);"></div>
+              <span class="swatch-label">Ocean</span>
+            </div>
+            <div class="theme-swatch" data-theme="midnight">
+              <div class="swatch-circle" style="background: linear-gradient(135deg,#0ea5e9,#6366f1);"></div>
+              <span class="swatch-label">Midnight</span>
+            </div>
+            <div class="theme-swatch" data-theme="sunset">
+              <div class="swatch-circle" style="background: linear-gradient(135deg,#f97316,#ef4444);"></div>
+              <span class="swatch-label">Sunset</span>
+            </div>
+            <div class="theme-swatch" data-theme="mint">
+              <div class="swatch-circle" style="background: linear-gradient(135deg,#10b981,#34d399);"></div>
+              <span class="swatch-label">Mint</span>
+            </div>
+            <div class="theme-swatch" data-theme="neon">
+              <div class="swatch-circle" style="background: linear-gradient(135deg,#a21caf,#ec4899);"></div>
+              <span class="swatch-label">Neon</span>
+            </div>
+            <div class="theme-swatch" data-theme="mono">
+              <div class="swatch-circle" style="background: linear-gradient(135deg,#6b7280,#9ca3af);"></div>
+              <span class="swatch-label">Mono</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Units -->
+        <div class="settings-group">
+          <div class="settings-group-title">Preferences</div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-label">Temperature Unit</div>
+              <div class="settings-row-sub" id="temp-unit-sub">Currently Celsius (°C)</div>
+            </div>
+            <button class="toggle-switch" id="temp-toggle" role="switch" aria-label="Temperature unit"></button>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-label">Music</div>
+              <div class="settings-row-sub">Ambient background music</div>
+            </div>
+            <button class="toggle-switch" id="music-settings-toggle" role="switch" aria-label="Music"></button>
+          </div>
+        </div>
+
+        <!-- Legal -->
+        <div class="settings-group">
+          <div class="settings-group-title">Legal & About</div>
+          <a class="settings-link-row" href="https://360-search.com/privacypolicy.html" target="_blank">
+            <span class="settings-link-icon">🔒</span>
+            <div class="settings-row-left"><div class="settings-row-label">Privacy Policy</div></div>
+            <span class="settings-link-chevron">›</span>
+          </a>
+          <a class="settings-link-row" href="https://360-search.com/tos.html" target="_blank">
+            <span class="settings-link-icon">📜</span>
+            <div class="settings-row-left"><div class="settings-row-label">Terms of Service</div></div>
+            <span class="settings-link-chevron">›</span>
+          </a>
+          <div class="settings-link-row">
+            <span class="settings-link-icon">ℹ️</span>
+            <div class="settings-row-left">
+              <div class="settings-row-label">Version</div>
+              <div class="settings-row-sub">360 Android v2.0.3</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /settings-page -->
+    </div><!-- /page-more -->
+
+  </main><!-- /page-content -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="bottom-nav">
+    <button class="nav-tab active" data-page="home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-tab" data-page="search">
+      <span class="nav-icon">🔍</span>
+      <span class="nav-label">Search</span>
+    </button>
+    <button class="nav-tab" data-page="ai">
+      <span class="nav-icon">🤖</span>
+      <span class="nav-label">AI</span>
+    </button>
+    <button class="nav-tab" data-page="games">
+      <span class="nav-icon">🎮</span>
+      <span class="nav-label">Games</span>
+    </button>
+    <button class="nav-tab" data-page="more">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">More</span>
+    </button>
+  </nav>
+
+</div><!-- /app-shell -->
+
+<!-- ══════════════════════════════════════
+     AUTH SHEET
+══════════════════════════════════════ -->
+<div id="auth-sheet">
+  <div id="auth-backdrop"></div>
+  <div id="auth-panel">
+    <div class="auth-panel-title">Sign in to 360</div>
+    <input class="auth-input" id="auth-email" type="email" placeholder="Email" autocomplete="email" />
+    <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password" />
+    <button class="auth-btn-primary" id="auth-login-btn">Log In</button>
+    <div class="oauth-row">
+      <button class="oauth-btn" id="github-login">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </button>
+      <button class="oauth-btn" id="google-login">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Google
+      </button>
+    </div>
+    <p class="auth-error" id="auth-error"></p>
+    <button class="auth-close-btn" id="auth-close-btn">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     IFRAME VIEWER (games / external pages)
+══════════════════════════════════════ -->
+<div id="iframe-viewer">
+  <div class="iframe-header">
+    <button class="iframe-close-btn" id="iframe-close-btn">✕</button>
+    <div class="iframe-title" id="iframe-title">Loading…</div>
+  </div>
+  <iframe class="iframe-viewer-frame" id="iframe-frame" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ══════════════════════════════════════
+     APP SCRIPTS
+══════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────
+//  360 ANDROID APP — CORE v2.0.3
+// ─────────────────────────────────────────
+
+const SUPABASE_URL = "https://wiswfpfsjiowtrdyqpxy.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpc3dmcGZzamlvd3RyZHlxcHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzg4OTcsImV4cCI6MjA4MzkxNDg5N30.z_4FtM2c8UwgrRlafPYjolQuod4IoHQats95XHio1zM";
+const EDGE_URL     = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/search";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── SPLASH ──────────────────────────────
+(function() {
+  const splash = document.getElementById("splash");
+  const delay  = (ms) => new Promise(r => setTimeout(r, ms));
+  async function runSplash() {
+    await delay(80);
+    document.getElementById("s3").classList.add("splash-anim");
+    await delay(130);
+    document.getElementById("s6").classList.add("splash-anim");
+    await delay(130);
+    document.getElementById("s0").classList.add("splash-anim");
+    await delay(1000);
+    splash.classList.add("fade");
+    splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+  }
+  runSplash();
+})();
+
+// ── TOAST ───────────────────────────────
+function showToast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.getElementById("toast-container").appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── THEME & DARK MODE ───────────────────
+(function() {
+  const saved = localStorage.getItem("theme") || "ocean";
+  document.body.classList.add("theme-" + saved);
+  document.querySelectorAll(".theme-swatch").forEach(s => {
+    if (s.dataset.theme === saved) s.classList.add("active");
+    else s.classList.remove("active");
+  });
+
+  const dark = localStorage.getItem("darkMode") === "true";
+  document.body.classList.toggle("dark", dark);
+  const dt = document.getElementById("dark-toggle");
+  if (dt) dt.classList.toggle("on", dark);
+})();
+
+document.getElementById("dark-toggle")?.addEventListener("click", function() {
+  const isDark = document.body.classList.toggle("dark");
+  localStorage.setItem("darkMode", isDark);
+  this.classList.toggle("on", isDark);
+});
+
+document.querySelectorAll(".theme-swatch").forEach(s => {
+  s.addEventListener("click", function() {
+    const theme = this.dataset.theme;
+    document.body.classList.forEach(c => { if (c.startsWith("theme-")) document.body.classList.remove(c); });
+    document.body.classList.add("theme-" + theme);
+    localStorage.setItem("theme", theme);
+    document.querySelectorAll(".theme-swatch").forEach(x => x.classList.remove("active"));
+    this.classList.add("active");
+  });
+});
+
+// ── NAVIGATION ──────────────────────────
+let currentPage = "home";
+
+function navigateTo(pageId) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+
+  const page = document.getElementById("page-" + pageId);
+  const tab  = document.querySelector(`.nav-tab[data-page="${pageId}"]`);
+  if (page) page.classList.add("active");
+  if (tab)  tab.classList.add("active");
+  currentPage = pageId;
+
+  // Scroll page content to top
+  document.getElementById("page-content").scrollTo(0, 0);
+}
+
+document.querySelectorAll(".nav-tab").forEach(btn => {
+  btn.addEventListener("click", () => navigateTo(btn.dataset.page));
+});
+
+// Quick tiles (home shortcuts to pages)
+document.querySelectorAll(".quick-tile[data-page]").forEach(tile => {
+  tile.addEventListener("click", (e) => {
+    e.preventDefault();
+    navigateTo(tile.dataset.page);
+  });
+});
+
+// Settings header btn → goes to More page
+document.getElementById("settingsHeaderBtn")?.addEventListener("click", () => navigateTo("more"));
+
+// ── CLOCK ───────────────────────────────
+function updateClock() {
+  const el = document.getElementById("clock");
+  if (el) el.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── WEATHER ─────────────────────────────
+let lastTempC = null;
+let tempUnit  = localStorage.getItem("tempUnit") || "C";
+
+function renderWeather() {
+  const chip = document.getElementById("weatherChip");
+  if (!chip || lastTempC === null) return;
+  const t = tempUnit === "C" ? Math.round(lastTempC) + "°C" : Math.round(lastTempC * 9/5 + 32) + "°F";
+  chip.textContent = "🌤 " + t;
+}
+
+(async function loadWeather() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true`);
+      const d = await r.json();
+      lastTempC = d.current_weather.temperature;
+      renderWeather();
+    } catch {}
+  }, () => {});
+})();
+
+// Temp unit toggle in settings
+const tempToggle = document.getElementById("temp-toggle");
+if (tempUnit === "F" && tempToggle) tempToggle.classList.add("on");
+
+tempToggle?.addEventListener("click", function() {
+  tempUnit = tempUnit === "C" ? "F" : "C";
+  localStorage.setItem("tempUnit", tempUnit);
+  this.classList.toggle("on", tempUnit === "F");
+  document.getElementById("temp-unit-sub").textContent =
+    tempUnit === "C" ? "Currently Celsius (°C)" : "Currently Fahrenheit (°F)";
+  renderWeather();
+});
+
+// ── MUSIC ───────────────────────────────
+const music        = document.getElementById("bgMusic");
+let musicEnabled   = localStorage.getItem("music") === "true";
+const musicBtn     = document.getElementById("musicToggle");
+const musicSettBtn = document.getElementById("music-settings-toggle");
+
+function syncMusic() {
+  if (musicBtn) musicBtn.textContent = musicEnabled ? "On" : "Off";
+  if (musicSettBtn) musicSettBtn.classList.toggle("on", musicEnabled);
+  document.getElementById("musicStrip").style.display = "flex";
+  if (musicEnabled && music) music.play().catch(() => {});
+  else if (music) music.pause();
+}
+
+musicBtn?.addEventListener("click", () => {
+  musicEnabled = !musicEnabled;
+  localStorage.setItem("music", musicEnabled);
+  syncMusic();
+});
+
+musicSettBtn?.addEventListener("click", function() {
+  musicEnabled = !musicEnabled;
+  localStorage.setItem("music", musicEnabled);
+  syncMusic();
+});
+
+syncMusic();
+
+// ── AUTH ─────────────────────────────────
+const authSheet    = document.getElementById("auth-sheet");
+const authBackdrop = document.getElementById("auth-backdrop");
+const authClose    = document.getElementById("auth-close-btn");
+
+function openAuth() { authSheet.classList.add("open"); }
+function closeAuth() { authSheet.classList.remove("open"); }
+
+document.getElementById("signInHeaderBtn")?.addEventListener("click", openAuth);
+document.getElementById("profile-row")?.addEventListener("click", () => {
+  sb.auth.getUser().then(({ data }) => {
+    if (data?.user) {
+      sb.auth.signOut().then(() => { showToast("Signed out"); updateProfileUI(null); });
+    } else {
+      openAuth();
+    }
+  });
+});
+
+authBackdrop.addEventListener("click", closeAuth);
+authClose.addEventListener("click", closeAuth);
+
+document.getElementById("auth-login-btn")?.addEventListener("click", async () => {
+  const email = document.getElementById("auth-email").value;
+  const pass  = document.getElementById("auth-password").value;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    document.getElementById("auth-error").textContent = error.message;
+  } else {
+    closeAuth();
+    showToast("Signed in!");
+  }
+});
+
+document.getElementById("github-login")?.addEventListener("click", async () => {
+  await sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: location.origin } });
+});
+document.getElementById("google-login")?.addEventListener("click", async () => {
+  await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin } });
+});
+
+function updateProfileUI(user) {
+  const nameEl  = document.getElementById("profile-name-label");
+  const emailEl = document.getElementById("profile-email-label");
+  const btnEl   = document.getElementById("signInHeaderBtn");
+
+  if (user) {
+    const uname = user.user_metadata?.username || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+    if (nameEl)  nameEl.textContent  = "@" + uname;
+    if (emailEl) emailEl.textContent = user.email || "";
+    if (btnEl)   btnEl.textContent   = uname[0].toUpperCase();
+    btnEl?.style.setProperty("background", "linear-gradient(135deg, var(--a), var(--a2))");
+  } else {
+    if (nameEl)  nameEl.textContent  = "Sign in to 360";
+    if (emailEl) emailEl.textContent = "Sync your preferences across devices";
+    if (btnEl)   { btnEl.textContent = "👤"; btnEl.style.removeProperty("background"); }
+  }
+}
+
+sb.auth.getSession().then(({ data }) => updateProfileUI(data?.session?.user || null));
+sb.auth.onAuthStateChange((_, session) => updateProfileUI(session?.user || null));
+
+// ── SEARCH ───────────────────────────────
+let searchTab  = "all";
+let searchPage = 1;
+let lastQuery  = "";
+
+// Home form submits → go to search page
+document.getElementById("home-search-form")?.addEventListener("submit", e => {
+  e.preventDefault();
+  const q = document.getElementById("home-search-input").value.trim();
+  if (!q) return;
+  navigateTo("search");
+  document.getElementById("search-page-input").value = q;
+  runSearch(q, "all", 1);
+});
+
+// Search page form
+document.getElementById("search-page-form")?.addEventListener("submit", e => {
+  e.preventDefault();
+  const q = document.getElementById("search-page-input").value.trim();
+  if (!q) return;
+  runSearch(q, searchTab, 1);
+});
+
+// Tab buttons
+document.querySelectorAll(".search-tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".search-tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    searchTab = btn.dataset.tab;
+    const q = document.getElementById("search-page-input").value.trim();
+    if (q) runSearch(q, searchTab, 1);
+  });
+});
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+async function runSearch(q, tab, page) {
+  lastQuery  = q;
+  searchTab  = tab;
+  searchPage = page;
+
+  const body     = document.getElementById("search-results-body");
+  const loader   = document.getElementById("search-loader");
+  const empty    = document.getElementById("search-empty");
+  const resWrap  = document.getElementById("results-container");
+  const imgGrid  = document.getElementById("image-results");
+  const kpWrap   = document.getElementById("knowledge-panel-wrap");
+  const pagWrap  = document.getElementById("pagination-wrap");
+
+  empty.style.display  = "none";
+  loader.classList.add("visible");
+  resWrap.innerHTML    = "";
+  imgGrid.innerHTML    = "";
+  kpWrap.innerHTML     = "";
+  pagWrap.innerHTML    = "";
+  imgGrid.style.display = "none";
+
+  try {
+    const res  = await fetch(EDGE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q, tab, page, safe: "moderate" })
+    });
+    const data = await res.json();
+    loader.classList.remove("visible");
+
+    if (data.kp) {
+      kpWrap.innerHTML = `
+        <div class="knowledge-panel">
+          <div class="kp-title">${escHtml(data.kp.title)}</div>
+          ${data.kp.type ? `<div class="kp-type">${escHtml(data.kp.type)}</div>` : ""}
+          ${data.kp.description ? `<div class="kp-desc">${escHtml(data.kp.description)}</div>` : ""}
+        </div>`;
+    }
+
+    if (tab === "images" && data.images?.length) {
+      imgGrid.style.display = "grid";
+      imgGrid.innerHTML = data.images.map(img => `
+        <div class="image-grid-item" onclick="openIframe('${escHtml(img.url || img.contextLink || "#")}','Image')">
+          <img src="${escHtml(img.thumbnail || img.src)}" alt="${escHtml(img.title)}" loading="lazy" />
+        </div>`).join("");
+    } else if (data.web?.length) {
+      resWrap.innerHTML = data.web.map(r => `
+        <div class="result-card" onclick="window.open('${escHtml(r.url)}','_blank')">
+          <div class="result-card-url">${escHtml(r.url?.replace(/^https?:\/\//, "").split("/")[0])}</div>
+          <div class="result-card-title">${escHtml(r.title)}</div>
+          <div class="result-card-snippet">${escHtml(r.snippet)}</div>
+        </div>`).join("");
+
+      // Pagination
+      if (data.totalPages > 1) {
+        const btns = [];
+        if (page > 1) btns.push(`<button onclick="runSearch('${escHtml(q)}','${tab}',${page-1})" style="padding:10px 22px;border-radius:99px;border:1px solid var(--br);background:var(--surface);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit;">← Prev</button>`);
+        if (page < data.totalPages) btns.push(`<button onclick="runSearch('${escHtml(q)}','${tab}',${page+1})" style="padding:10px 22px;border-radius:99px;border:none;background:var(--a);color:white;font-size:14px;cursor:pointer;font-family:inherit;">Next →</button>`);
+        pagWrap.innerHTML = `<div style="display:flex;gap:10px;justify-content:center;">${btns.join("")}</div>`;
+      }
+    } else {
+      resWrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No results</div><div class="empty-state-text">Try different keywords.</div></div>`;
+    }
+  } catch (err) {
+    loader.classList.remove("visible");
+    resWrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Search unavailable</div><div class="empty-state-text">Check your connection and try again.</div></div>`;
+  }
+}
+
+// ── AI CHAT ──────────────────────────────
+const AI_API_URL = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/ai-chat";
+let aiHistory    = [];
+
+const aiMessages = document.getElementById("ai-messages");
+const aiInput    = document.getElementById("ai-input");
+const aiSendBtn  = document.getElementById("ai-send-btn");
+
+function appendAiBubble(role, text) {
+  const empty = document.getElementById("ai-empty");
+  if (empty) empty.style.display = "none";
+
+  const div = document.createElement("div");
+  div.className = `ai-bubble ${role}`;
+  if (role === "assistant") {
+    div.innerHTML = typeof marked !== "undefined" ? marked.parse(text) : text.replace(/\n/g, "<br>");
+  } else {
+    div.textContent = text;
+  }
+  aiMessages.appendChild(div);
+  aiMessages.scrollTop = aiMessages.scrollHeight;
+  return div;
+}
+
+async function sendAiMessage() {
+  const text = aiInput.value.trim();
+  if (!text) return;
+  aiInput.value = "";
+  aiInput.style.height = "auto";
+
+  appendAiBubble("user", text);
+  aiHistory.push({ role: "user", content: text });
+
+  const thinkingDiv = appendAiBubble("assistant", "…");
+
+  try {
+    const res  = await fetch(AI_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: aiHistory })
+    });
+    const data = await res.json();
+    const reply = data.reply || data.content || data.message || "Sorry, I couldn't get a response.";
+    thinkingDiv.innerHTML = typeof marked !== "undefined" ? marked.parse(reply) : reply.replace(/\n/g,"<br>");
+    aiHistory.push({ role: "assistant", content: reply });
+  } catch {
+    thinkingDiv.textContent = "Network error. Please try again.";
+  }
+}
+
+aiSendBtn?.addEventListener("click", sendAiMessage);
+aiInput?.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); }
+});
+
+// Auto-resize textarea
+aiInput?.addEventListener("input", function() {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+});
+
+// ── GAMES ────────────────────────────────
+const GAMES = [
+  { name: "2048",          icon: "🔢", tag: "Puzzle",  url: "https://play2048.co/" },
+  { name: "Snake",         icon: "🐍", tag: "Classic", url: "https://www.google.com/fbx?fbx=snake_arcade" },
+  { name: "Sudoku",        icon: "🧩", tag: "Logic",   url: "https://sudoku.com/" },
+  { name: "Chess",         icon: "♟️",  tag: "Strategy",url: "https://www.chess.com/play/computer" },
+  { name: "Wordle",        icon: "📝", tag: "Word",    url: "https://www.nytimes.com/games/wordle/index.html" },
+  { name: "Pac-Man",       icon: "👻", tag: "Arcade",  url: "https://www.google.com/logos/2010/pacman10-i.html" },
+  { name: "Minesweeper",   icon: "💣", tag: "Classic", url: "https://minesweeper.online/" },
+  { name: "Tetris",        icon: "🧱", tag: "Arcade",  url: "https://jstris.jezevec10.com/" },
+  { name: "Crossword",     icon: "🔠", tag: "Word",    url: "https://www.nytimes.com/crosswords" },
+  { name: "Flappy Bird",   icon: "🐦", tag: "Arcade",  url: "https://flappybird.io/" },
+];
+
+function renderGames() {
+  const grid = document.getElementById("games-grid");
+  if (!grid) return;
+  grid.innerHTML = GAMES.map(g => `
+    <div class="game-card" onclick="openIframe('${g.url}','${g.name}')">
+      <span class="game-card-icon">${g.icon}</span>
+      <span class="game-card-name">${g.name}</span>
+      <span class="game-card-tag">${g.tag}</span>
+    </div>`).join("");
+}
+renderGames();
+
+// ── IFRAME VIEWER ────────────────────────
+const iframeViewer = document.getElementById("iframe-viewer");
+const iframeFrame  = document.getElementById("iframe-frame");
+const iframeTitle  = document.getElementById("iframe-title");
+const iframeClose  = document.getElementById("iframe-close-btn");
+
+function openIframe(url, title) {
+  iframeTitle.textContent = title || "Loading…";
+  iframeFrame.src = url;
+  iframeViewer.classList.add("open");
+}
+
+function closeIframe() {
+  iframeViewer.classList.remove("open");
+  setTimeout(() => { iframeFrame.src = ""; }, 350);
+}
+
+iframeClose?.addEventListener("click", closeIframe);
+
+// ── ANDROID BACK BUTTON (TWA) ─────────────
+document.addEventListener("backbutton", (e) => {
+  e.preventDefault();
+  if (iframeViewer.classList.contains("open")) { closeIframe(); return; }
+  if (authSheet.classList.contains("open"))    { closeAuth(); return; }
+  if (currentPage !== "home")                  { navigateTo("home"); return; }
+  if (typeof navigator.app !== "undefined") navigator.app.exitApp();
+}, false);
+
+</script>
+</body>
+</html>
