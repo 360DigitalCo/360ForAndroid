@@ -1,0 +1,62 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.search360.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.search360.app"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "2.0.3"
+
+        manifestPlaceholders = [
+            hostName: "360-search.com",
+            defaultUrl: "https://360-search.com/",
+            launcherName: "360",
+            navigationColor: "#3b82f6",
+            navigationColorDark: "#1e3a8a",
+            navigationDividerColor: "#3b82f6",
+            navigationDividerColorDark: "#1e3a8a",
+            backgroundColor: "#050816",
+            enableNotifications: "false",
+            enableSiteSettingsShortcut: "true",
+            orientation: "portrait",
+            displayMode: "standalone",
+            screenOrientation: "portrait",
+            fullScreenDimension: "100dip"
+        ]
+    }
+
+    signingConfigs {
+        release {
+            // For production: replace with your keystore
+            // storeFile file('keystore.jks')
+            // storePassword 'your_store_password'
+            // keyAlias 'your_key_alias'
+            // keyPassword 'your_key_password'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix ".debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
