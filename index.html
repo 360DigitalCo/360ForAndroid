@@ -2,39 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#3b82f6" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>360</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/png" href="favicon-32x32.png" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/android.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="assets/js/supabase.min.js"></script>
+  <script src="assets/js/marked.min.js"></script>
+  <style>
+    /* ── BUILT-IN PAGE STYLES ── */
+    .feature-page { padding: 16px; }
+
+    /* Weather */
+    .weather-hero { background: linear-gradient(135deg, var(--a), var(--a2)); border-radius: var(--radius); padding: 28px 20px; text-align: center; color: white; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .weather-temp { font-size: 72px; font-weight: 900; line-height: 1; }
+    .weather-desc { font-size: 18px; font-weight: 600; opacity: .9; margin-top: 4px; }
+    .weather-loc  { font-size: 13px; opacity: .75; margin-top: 6px; }
+    .weather-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 16px; }
+    .weather-card { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--br); padding: 14px; box-shadow: var(--shadow-sm); }
+    .weather-card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--mut); margin-bottom: 4px; }
+    .weather-card-value { font-size: 20px; font-weight: 700; color: var(--txt); }
+    .forecast-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--br); margin-bottom: 8px; box-shadow: var(--shadow-sm); }
+    .forecast-day { font-size: 14px; font-weight: 600; color: var(--txt); width: 60px; }
+    .forecast-icon { font-size: 22px; }
+    .forecast-range { font-size: 14px; font-weight: 600; color: var(--txt2); }
+
+    /* News */
+    .news-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--br); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .15s; }
+    .news-card:active { transform: scale(.98); }
+    .news-card-source { font-size: 11px; font-weight: 700; color: var(--a); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    .news-card-title { font-size: 15px; font-weight: 700; color: var(--txt); line-height: 1.4; margin-bottom: 6px; }
+    .news-card-desc { font-size: 13px; color: var(--txt2); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .news-card-time { font-size: 11px; color: var(--mut); margin-top: 8px; }
+    .news-tabs { display: flex; gap: 6px; padding: 12px 16px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .news-tabs::-webkit-scrollbar { display: none; }
+    .news-tab { flex-shrink: 0; padding: 7px 16px; border-radius: 99px; border: none; background: var(--surface2); color: var(--mut); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .news-tab.active { background: var(--a); color: white; }
+
+    /* Stocks */
+    .stock-hero { background: var(--card); border-radius: var(--radius); border: 1px solid var(--br); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
+    .stock-ticker { font-size: 20px; font-weight: 900; color: var(--txt); }
+    .stock-name { font-size: 12px; color: var(--mut); margin-bottom: 8px; }
+    .stock-price { font-size: 32px; font-weight: 900; color: var(--txt); }
+    .stock-change { font-size: 14px; font-weight: 700; padding: 3px 10px; border-radius: 99px; display: inline-block; margin-top: 4px; }
+    .stock-change.up { background: rgba(16,185,129,.15); color: #10b981; }
+    .stock-change.down { background: rgba(239,68,68,.15); color: #ef4444; }
+    .stock-search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .stock-search-input { flex: 1; padding: 12px 16px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; outline: none; }
+    .stock-search-input:focus { border-color: var(--a); }
+    .stock-search-btn { padding: 12px 20px; border-radius: var(--radius-sm); border: none; background: var(--a); color: white; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* Translator */
+    .translator-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .lang-row { display: flex; align-items: center; gap: 8px; }
+    .lang-select { flex: 1; padding: 10px 12px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 14px; font-family: inherit; outline: none; }
+    .swap-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--br); background: var(--surface2); color: var(--a); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .translate-input, .translate-output { width: 100%; padding: 14px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; resize: none; outline: none; min-height: 100px; box-sizing: border-box; }
+    .translate-input:focus { border-color: var(--a); }
+    .translate-output { background: var(--card); color: var(--txt2); }
+    .translate-btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .char-count { font-size: 11px; color: var(--mut); text-align: right; }
+
+    /* URL Shortener */
+    .shortener-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .shortener-input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; outline: none; box-sizing: border-box; }
+    .shortener-input:focus { border-color: var(--a); }
+    .shortener-btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .short-result { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--br); padding: 16px; display: flex; align-items: center; gap: 10px; }
+    .short-url { flex: 1; font-size: 15px; font-weight: 600; color: var(--a); word-break: break-all; }
+    .copy-btn { padding: 8px 16px; border-radius: 99px; border: 1px solid var(--a); background: transparent; color: var(--a); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+
+    /* Chat */
+    .chat-page { display: flex; flex-direction: column; height: 100%; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; }
+    .chat-bubble-wrap { display: flex; gap: 8px; align-items: flex-end; }
+    .chat-bubble-wrap.mine { flex-direction: row-reverse; }
+    .chat-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--a), var(--a2)); display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: 700; flex-shrink: 0; }
+    .chat-bubble { max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; word-break: break-word; }
+    .chat-bubble.them { background: var(--card); color: var(--txt); border: 1px solid var(--br); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
+    .chat-bubble.mine { background: var(--a); color: white; border-bottom-right-radius: 4px; }
+    .chat-input-bar { padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--br); display: flex; gap: 10px; align-items: flex-end; }
+    .chat-name-setup { padding: 40px 24px; text-align: center; }
+    .chat-name-title { font-size: 22px; font-weight: 700; color: var(--txt); margin-bottom: 8px; }
+    .chat-name-sub { font-size: 14px; color: var(--mut); margin-bottom: 24px; }
+    .chat-name-input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; outline: none; box-sizing: border-box; margin-bottom: 12px; }
+    .chat-name-btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* Page headers for feature pages */
+    .feature-header { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--br); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .feature-back-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--surface2); color: var(--txt); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .feature-header-title { font-size: 18px; font-weight: 700; color: var(--txt); }
+
+    /* Loading state */
+    .feature-loader { text-align: center; padding: 60px 20px; color: var(--mut); }
+    .feature-loader .spinner { width: 32px; height: 32px; border: 3px solid var(--br); border-top-color: var(--a); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+  </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     SPLASH
-══════════════════════════════════════ -->
 <div id="splash">
   <div class="splash-num" id="s3">3</div>
   <div class="splash-num" id="s6">6</div>
   <div class="splash-num" id="s0">0</div>
 </div>
 
-<!-- ══════════════════════════════════════
-     APP SHELL
-══════════════════════════════════════ -->
 <div id="app-shell">
 
-  <!-- TOP HEADER -->
   <header id="app-header">
     <div class="header-logo">360</div>
     <div class="header-actions">
@@ -45,102 +121,54 @@
     </div>
   </header>
 
-  <!-- PAGE CONTENT -->
   <main id="page-content">
 
-    <!-- ── HOME PAGE ── -->
+    <!-- ── HOME ── -->
     <div class="page active" id="page-home">
       <div class="home-page">
         <div class="home-top-row">
           <div class="home-clock" id="clock">--:--</div>
           <div class="home-weather" id="weatherChip">🌤 --°</div>
         </div>
-
         <div class="home-logo-wrap">
           <div class="home-logo">360</div>
-          <div class="home-tagline">Search · AI · Everything</div>
+          <div class="home-tagline">Everything You Need In Your Circle.</div>
         </div>
-
         <div class="search-bar-wrap">
           <form id="home-search-form">
             <div class="search-bar">
               <span class="search-bar-icon">🔍</span>
-              <input
-                id="home-search-input"
-                type="text"
-                placeholder="Search with 360..."
-                autocomplete="off"
-                autocorrect="off"
-                autocapitalize="off"
-                spellcheck="false"
-                enterkeyhint="search"
-              />
+              <input id="home-search-input" type="text" placeholder="Search with 360..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
               <button class="search-bar-btn" type="submit">Go</button>
             </div>
           </form>
         </div>
-
         <div class="quick-tiles">
-          <a class="quick-tile" data-page="ai">
-            <span class="qt-icon">🤖</span>
-            <span class="qt-label">AI</span>
-          </a>
-          <a class="quick-tile" href="https://360-search.com/weather" target="_blank">
-            <span class="qt-icon">🌤</span>
-            <span class="qt-label">Weather</span>
-          </a>
-          <a class="quick-tile" href="https://360-search.com/news" target="_blank">
-            <span class="qt-icon">📰</span>
-            <span class="qt-label">News</span>
-          </a>
-          <a class="quick-tile" data-page="games">
-            <span class="qt-icon">🎮</span>
-            <span class="qt-label">Games</span>
-          </a>
-          <a class="quick-tile" href="https://360-search.com/stocks" target="_blank">
-            <span class="qt-icon">📈</span>
-            <span class="qt-label">Stocks</span>
-          </a>
-          <a class="quick-tile" href="https://360-search.com/translator" target="_blank">
-            <span class="qt-icon">🌐</span>
-            <span class="qt-label">Translate</span>
-          </a>
-          <a class="quick-tile" href="https://360-search.com/chat" target="_blank">
-            <span class="qt-icon">💬</span>
-            <span class="qt-label">Chat</span>
-          </a>
-          <a class="quick-tile" href="https://360-search.com/url-shortener" target="_blank">
-            <span class="qt-icon">🔗</span>
-            <span class="qt-label">Shorten</span>
-          </a>
+          <a class="quick-tile" data-page="ai"><span class="qt-icon">🤖</span><span class="qt-label">AI</span></a>
+          <a class="quick-tile" data-page="weather"><span class="qt-icon">🌤</span><span class="qt-label">Weather</span></a>
+          <a class="quick-tile" data-page="news"><span class="qt-icon">📰</span><span class="qt-label">News</span></a>
+          <a class="quick-tile" data-page="games"><span class="qt-icon">🎮</span><span class="qt-label">Games</span></a>
+          <a class="quick-tile" data-page="stocks"><span class="qt-icon">📈</span><span class="qt-label">Stocks</span></a>
+          <a class="quick-tile" data-page="translator"><span class="qt-icon">🌐</span><span class="qt-label">Translate</span></a>
+          <a class="quick-tile" data-page="chat"><span class="qt-icon">💬</span><span class="qt-label">Chat</span></a>
+          <a class="quick-tile" data-page="shortener"><span class="qt-icon">🔗</span><span class="qt-label">Shorten</span></a>
         </div>
-
         <div class="music-strip" id="musicStrip" style="display:none;">
           <span class="music-strip-icon">🎵</span>
           <span class="music-strip-label">Ambient Music</span>
           <button class="music-toggle-btn" id="musicToggle">Off</button>
         </div>
-
         <audio id="bgMusic" src="https://360-search.com/calm360.mp3" loop></audio>
       </div>
     </div>
 
-    <!-- ── SEARCH PAGE ── -->
+    <!-- ── SEARCH ── -->
     <div class="page" id="page-search">
       <div class="search-page">
         <div class="search-page-header">
           <form id="search-page-form">
             <div class="search-bar-compact">
-              <input
-                id="search-page-input"
-                type="text"
-                placeholder="Search..."
-                autocomplete="off"
-                autocorrect="off"
-                autocapitalize="off"
-                spellcheck="false"
-                enterkeyhint="search"
-              />
+              <input id="search-page-input" type="text" placeholder="Search..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
               <button class="search-bar-compact-btn" type="submit">🔍</button>
             </div>
           </form>
@@ -149,17 +177,13 @@
             <button class="search-tab-btn" data-tab="images">Images</button>
           </div>
         </div>
-
         <div class="search-results-body" id="search-results-body">
           <div class="empty-state" id="search-empty">
             <div class="empty-state-icon">🔍</div>
             <div class="empty-state-title">Search anything</div>
-            <div class="empty-state-text">Type above and hit Go to search the web with 360.</div>
+            <div class="empty-state-text">Type above and search the web with 360.</div>
           </div>
-          <div class="search-loader" id="search-loader">
-            <div class="spinner"></div>
-            Searching…
-          </div>
+          <div class="search-loader" id="search-loader"><div class="spinner"></div>Searching…</div>
           <div id="knowledge-panel-wrap"></div>
           <div id="results-container"></div>
           <div class="image-grid" id="image-results" style="display:none;"></div>
@@ -168,49 +192,208 @@
       </div>
     </div>
 
-    <!-- ── AI PAGE ── -->
+    <!-- ── AI ── -->
     <div class="page" id="page-ai">
-      <div class="ai-page" style="height: calc(100dvh - var(--header-h) - var(--nav-h));">
+      <div class="ai-page" style="height:calc(100dvh - var(--header-h) - var(--nav-h));">
         <div class="ai-messages" id="ai-messages">
           <div class="empty-state" id="ai-empty">
             <div class="empty-state-icon">🤖</div>
             <div class="empty-state-title">360 AI</div>
-            <div class="empty-state-text">Ask me anything. I'm here to help.</div>
+            <div class="empty-state-text">Ask me anything!</div>
           </div>
         </div>
         <div class="ai-input-bar">
-          <textarea
-            class="ai-textarea"
-            id="ai-input"
-            placeholder="Ask AI anything..."
-            rows="1"
-            enterkeyhint="send"
-          ></textarea>
+          <textarea class="ai-textarea" id="ai-input" placeholder="Ask AI anything..." rows="1" enterkeyhint="send"></textarea>
           <button class="ai-send-btn" id="ai-send-btn">➤</button>
         </div>
       </div>
     </div>
 
-    <!-- ── GAMES PAGE ── -->
-    <div class="page" id="page-games">
-      <div class="section-header">
-        <div class="section-title">Games</div>
+    <!-- ── WEATHER ── -->
+    <div class="page" id="page-weather">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">Weather</div>
       </div>
-      <div class="games-page">
-        <div class="games-grid" id="games-grid">
-          <!-- populated by JS -->
+      <div class="feature-page" id="weather-content">
+        <div class="feature-loader" id="weather-loader">
+          <div class="spinner"></div>
+          Getting your location…
         </div>
       </div>
     </div>
 
-    <!-- ── MORE PAGE (settings + extras) ── -->
-    <div class="page" id="page-more">
-      <div class="section-header">
-        <div class="section-title">Settings</div>
+    <!-- ── NEWS ── -->
+    <div class="page" id="page-news">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">News</div>
       </div>
-      <div class="settings-page">
+      <div class="news-tabs" id="news-tabs">
+        <button class="news-tab active" data-cat="general">Top</button>
+        <button class="news-tab" data-cat="technology">Tech</button>
+        <button class="news-tab" data-cat="business">Business</button>
+        <button class="news-tab" data-cat="sports">Sports</button>
+        <button class="news-tab" data-cat="entertainment">Entertainment</button>
+        <button class="news-tab" data-cat="health">Health</button>
+        <button class="news-tab" data-cat="science">Science</button>
+      </div>
+      <div class="feature-page" id="news-content">
+        <div class="feature-loader" id="news-loader"><div class="spinner"></div>Loading news…</div>
+      </div>
+    </div>
 
-        <!-- Profile -->
+    <!-- ── STOCKS ── -->
+    <div class="page" id="page-stocks">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">Stocks</div>
+      </div>
+      <div class="feature-page">
+        <div class="stock-search-bar">
+          <input class="stock-search-input" id="stock-input" type="text" placeholder="Enter ticker (e.g. AAPL)" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+          <button class="stock-search-btn" id="stock-btn">Look Up</button>
+        </div>
+        <div id="stock-result"></div>
+        <div style="margin-top:8px;">
+          <div class="settings-group-title" style="padding:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);">Popular</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button onclick="lookupStock('AAPL')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">AAPL</button>
+            <button onclick="lookupStock('GOOGL')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">GOOGL</button>
+            <button onclick="lookupStock('MSFT')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">MSFT</button>
+            <button onclick="lookupStock('TSLA')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">TSLA</button>
+            <button onclick="lookupStock('AMZN')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">AMZN</button>
+            <button onclick="lookupStock('META')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">META</button>
+            <button onclick="lookupStock('NVDA')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">NVDA</button>
+            <button onclick="lookupStock('BTC-USD')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">BTC</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRANSLATOR ── -->
+    <div class="page" id="page-translator">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">Translate</div>
+      </div>
+      <div class="feature-page">
+        <div class="translator-wrap">
+          <div class="lang-row">
+            <select class="lang-select" id="lang-from">
+              <option value="auto">Detect Language</option>
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="pt">Portuguese</option>
+              <option value="ru">Russian</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="zh">Chinese (Simplified)</option>
+              <option value="ar">Arabic</option>
+              <option value="hi">Hindi</option>
+              <option value="nl">Dutch</option>
+              <option value="pl">Polish</option>
+              <option value="tr">Turkish</option>
+              <option value="sv">Swedish</option>
+              <option value="da">Danish</option>
+              <option value="fi">Finnish</option>
+              <option value="no">Norwegian</option>
+              <option value="he">Hebrew</option>
+              <option value="th">Thai</option>
+              <option value="vi">Vietnamese</option>
+              <option value="uk">Ukrainian</option>
+            </select>
+            <button class="swap-btn" id="swap-langs-btn">⇄</button>
+            <select class="lang-select" id="lang-to">
+              <option value="es">Spanish</option>
+              <option value="en">English</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="pt">Portuguese</option>
+              <option value="ru">Russian</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="zh">Chinese (Simplified)</option>
+              <option value="ar">Arabic</option>
+              <option value="hi">Hindi</option>
+              <option value="nl">Dutch</option>
+              <option value="pl">Polish</option>
+              <option value="tr">Turkish</option>
+              <option value="sv">Swedish</option>
+              <option value="da">Danish</option>
+              <option value="fi">Finnish</option>
+              <option value="no">Norwegian</option>
+              <option value="he">Hebrew</option>
+              <option value="th">Thai</option>
+              <option value="vi">Vietnamese</option>
+              <option value="uk">Ukrainian</option>
+            </select>
+          </div>
+          <textarea class="translate-input" id="translate-input" placeholder="Enter text to translate..." maxlength="5000"></textarea>
+          <div class="char-count"><span id="translate-char-count">0</span>/5000</div>
+          <button class="translate-btn" id="translate-btn">Translate</button>
+          <textarea class="translate-output" id="translate-output" readonly placeholder="Translation will appear here…"></textarea>
+          <button id="copy-translation-btn" style="display:none;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--a);background:transparent;color:var(--a);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Copy Translation</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CHAT ── -->
+    <div class="page" id="page-chat">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">360 Chat</div>
+      </div>
+      <div class="chat-page" style="height:calc(100dvh - var(--header-h) - var(--nav-h) - 56px);">
+        <div id="chat-name-setup" class="chat-name-setup" style="display:none;">
+          <div class="chat-name-title">What's your name?</div>
+          <div class="chat-name-sub">Set a display name to start chatting</div>
+          <input class="chat-name-input" id="chat-name-input" type="text" placeholder="Your name" maxlength="20" />
+          <button class="chat-name-btn" id="chat-name-btn">Start Chatting</button>
+        </div>
+        <div class="chat-messages" id="chat-messages" style="display:none;"></div>
+        <div class="chat-input-bar" id="chat-input-bar" style="display:none;">
+          <textarea class="ai-textarea" id="chat-input" placeholder="Say something…" rows="1" enterkeyhint="send" maxlength="500"></textarea>
+          <button class="ai-send-btn" id="chat-send-btn">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── URL SHORTENER ── -->
+    <div class="page" id="page-shortener">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">URL Shortener</div>
+      </div>
+      <div class="feature-page">
+        <div class="shortener-wrap">
+          <input class="shortener-input" id="shortener-input" type="url" placeholder="Paste a long URL here…" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <button class="shortener-btn" id="shortener-btn">Shorten URL</button>
+          <div id="shortener-result" style="display:none;"></div>
+        </div>
+        <div style="margin-top:20px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">Recent</div>
+          <div id="shortener-history"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GAMES ── -->
+    <div class="page" id="page-games">
+      <div class="section-header"><div class="section-title">Games</div></div>
+      <div class="games-page">
+        <div class="games-grid" id="games-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── MORE / SETTINGS ── -->
+    <div class="page" id="page-more">
+      <div class="section-header"><div class="section-title">Settings</div></div>
+      <div class="settings-page">
         <div class="settings-group" id="profile-group">
           <div class="settings-group-title">Account</div>
           <div class="settings-link-row" id="profile-row" style="cursor:pointer;">
@@ -222,8 +405,6 @@
             <span class="settings-link-chevron">›</span>
           </div>
         </div>
-
-        <!-- Appearance -->
         <div class="settings-group">
           <div class="settings-group-title">Appearance</div>
           <div class="settings-row">
@@ -233,35 +414,15 @@
             </div>
             <button class="toggle-switch" id="dark-toggle" role="switch" aria-label="Dark mode"></button>
           </div>
-          <div class="theme-swatch-row" id="theme-swatch-row">
-            <div class="theme-swatch active" data-theme="ocean">
-              <div class="swatch-circle" style="background: linear-gradient(135deg,#3b82f6,#06b6d4);"></div>
-              <span class="swatch-label">Ocean</span>
-            </div>
-            <div class="theme-swatch" data-theme="midnight">
-              <div class="swatch-circle" style="background: linear-gradient(135deg,#0ea5e9,#6366f1);"></div>
-              <span class="swatch-label">Midnight</span>
-            </div>
-            <div class="theme-swatch" data-theme="sunset">
-              <div class="swatch-circle" style="background: linear-gradient(135deg,#f97316,#ef4444);"></div>
-              <span class="swatch-label">Sunset</span>
-            </div>
-            <div class="theme-swatch" data-theme="mint">
-              <div class="swatch-circle" style="background: linear-gradient(135deg,#10b981,#34d399);"></div>
-              <span class="swatch-label">Mint</span>
-            </div>
-            <div class="theme-swatch" data-theme="neon">
-              <div class="swatch-circle" style="background: linear-gradient(135deg,#a21caf,#ec4899);"></div>
-              <span class="swatch-label">Neon</span>
-            </div>
-            <div class="theme-swatch" data-theme="mono">
-              <div class="swatch-circle" style="background: linear-gradient(135deg,#6b7280,#9ca3af);"></div>
-              <span class="swatch-label">Mono</span>
-            </div>
+          <div class="theme-swatch-row">
+            <div class="theme-swatch active" data-theme="ocean"><div class="swatch-circle" style="background:linear-gradient(135deg,#3b82f6,#06b6d4);"></div><span class="swatch-label">Ocean</span></div>
+            <div class="theme-swatch" data-theme="midnight"><div class="swatch-circle" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);"></div><span class="swatch-label">Midnight</span></div>
+            <div class="theme-swatch" data-theme="sunset"><div class="swatch-circle" style="background:linear-gradient(135deg,#f97316,#ef4444);"></div><span class="swatch-label">Sunset</span></div>
+            <div class="theme-swatch" data-theme="mint"><div class="swatch-circle" style="background:linear-gradient(135deg,#10b981,#34d399);"></div><span class="swatch-label">Mint</span></div>
+            <div class="theme-swatch" data-theme="neon"><div class="swatch-circle" style="background:linear-gradient(135deg,#a21caf,#ec4899);"></div><span class="swatch-label">Neon</span></div>
+            <div class="theme-swatch" data-theme="mono"><div class="swatch-circle" style="background:linear-gradient(135deg,#6b7280,#9ca3af);"></div><span class="swatch-label">Mono</span></div>
           </div>
         </div>
-
-        <!-- Units -->
         <div class="settings-group">
           <div class="settings-group-title">Preferences</div>
           <div class="settings-row">
@@ -279,8 +440,6 @@
             <button class="toggle-switch" id="music-settings-toggle" role="switch" aria-label="Music"></button>
           </div>
         </div>
-
-        <!-- Legal -->
         <div class="settings-group">
           <div class="settings-group-title">Legal & About</div>
           <a class="settings-link-row" href="https://360-search.com/privacypolicy.html" target="_blank">
@@ -297,45 +456,25 @@
             <span class="settings-link-icon">ℹ️</span>
             <div class="settings-row-left">
               <div class="settings-row-label">Version</div>
-              <div class="settings-row-sub">360 Android v2.0.3</div>
+              <div class="settings-row-sub">360 Android v3.0.0</div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-      </div><!-- /settings-page -->
-    </div><!-- /page-more -->
+  </main>
 
-  </main><!-- /page-content -->
-
-  <!-- BOTTOM NAV -->
   <nav id="bottom-nav">
-    <button class="nav-tab active" data-page="home">
-      <span class="nav-icon">🏠</span>
-      <span class="nav-label">Home</span>
-    </button>
-    <button class="nav-tab" data-page="search">
-      <span class="nav-icon">🔍</span>
-      <span class="nav-label">Search</span>
-    </button>
-    <button class="nav-tab" data-page="ai">
-      <span class="nav-icon">🤖</span>
-      <span class="nav-label">AI</span>
-    </button>
-    <button class="nav-tab" data-page="games">
-      <span class="nav-icon">🎮</span>
-      <span class="nav-label">Games</span>
-    </button>
-    <button class="nav-tab" data-page="more">
-      <span class="nav-icon">⚙️</span>
-      <span class="nav-label">More</span>
-    </button>
+    <button class="nav-tab active" data-page="home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></button>
+    <button class="nav-tab" data-page="search"><span class="nav-icon">🔍</span><span class="nav-label">Search</span></button>
+    <button class="nav-tab" data-page="ai"><span class="nav-icon">🤖</span><span class="nav-label">AI</span></button>
+    <button class="nav-tab" data-page="games"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></button>
+    <button class="nav-tab" data-page="more"><span class="nav-icon">⚙️</span><span class="nav-label">More</span></button>
   </nav>
+</div>
 
-</div><!-- /app-shell -->
-
-<!-- ══════════════════════════════════════
-     AUTH SHEET
-══════════════════════════════════════ -->
+<!-- AUTH SHEET -->
 <div id="auth-sheet">
   <div id="auth-backdrop"></div>
   <div id="auth-panel">
@@ -358,9 +497,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     IFRAME VIEWER (games / external pages)
-══════════════════════════════════════ -->
+<!-- IFRAME VIEWER (games) -->
 <div id="iframe-viewer">
   <div class="iframe-header">
     <button class="iframe-close-btn" id="iframe-close-btn">✕</button>
@@ -369,63 +506,52 @@
   <iframe class="iframe-viewer-frame" id="iframe-frame" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 </div>
 
-<!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
-<!-- ══════════════════════════════════════
-     APP SCRIPTS
-══════════════════════════════════════ -->
 <script>
-// ─────────────────────────────────────────
-//  360 ANDROID APP — CORE v2.0.3
-// ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+//  360 ANDROID v3.0.0 — FULL NATIVE APP
+// ═══════════════════════════════════════════════════════
 
 const SUPABASE_URL = "https://wiswfpfsjiowtrdyqpxy.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpc3dmcGZzamlvd3RyZHlxcHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzg4OTcsImV4cCI6MjA4MzkxNDg5N30.z_4FtM2c8UwgrRlafPYjolQuod4IoHQats95XHio1zM";
-const EDGE_URL     = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/search";
+const SEARCH_URL   = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/search";
+const AI_URL       = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/ai-chat";
+const AUTH_HEADERS = { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` };
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── SPLASH ──────────────────────────────
-(function() {
+// ── SPLASH ─────────────────────────────────────────────
+(async () => {
   const splash = document.getElementById("splash");
-  const delay  = (ms) => new Promise(r => setTimeout(r, ms));
-  async function runSplash() {
-    await delay(80);
-    document.getElementById("s3").classList.add("splash-anim");
-    await delay(130);
-    document.getElementById("s6").classList.add("splash-anim");
-    await delay(130);
-    document.getElementById("s0").classList.add("splash-anim");
-    await delay(1000);
-    splash.classList.add("fade");
-    splash.addEventListener("transitionend", () => splash.remove(), { once: true });
-  }
-  runSplash();
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+  await delay(80);
+  document.getElementById("s3").classList.add("splash-anim");
+  await delay(130); document.getElementById("s6").classList.add("splash-anim");
+  await delay(130); document.getElementById("s0").classList.add("splash-anim");
+  await delay(900);
+  splash.classList.add("fade");
+  splash.addEventListener("transitionend", () => splash.remove(), { once: true });
 })();
 
-// ── TOAST ───────────────────────────────
+// ── TOAST ──────────────────────────────────────────────
 function showToast(msg) {
   const t = document.createElement("div");
-  t.className = "toast";
-  t.textContent = msg;
+  t.className = "toast"; t.textContent = msg;
   document.getElementById("toast-container").appendChild(t);
   setTimeout(() => t.remove(), 3000);
 }
 
-// ── THEME & DARK MODE ───────────────────
+// ── THEME & DARK ───────────────────────────────────────
 (function() {
   const saved = localStorage.getItem("theme") || "ocean";
   document.body.classList.add("theme-" + saved);
   document.querySelectorAll(".theme-swatch").forEach(s => {
-    if (s.dataset.theme === saved) s.classList.add("active");
-    else s.classList.remove("active");
+    s.classList.toggle("active", s.dataset.theme === saved);
   });
-
   const dark = localStorage.getItem("darkMode") === "true";
   document.body.classList.toggle("dark", dark);
-  const dt = document.getElementById("dark-toggle");
-  if (dt) dt.classList.toggle("on", dark);
+  document.getElementById("dark-toggle")?.classList.toggle("on", dark);
 })();
 
 document.getElementById("dark-toggle")?.addEventListener("click", function() {
@@ -436,98 +562,429 @@ document.getElementById("dark-toggle")?.addEventListener("click", function() {
 
 document.querySelectorAll(".theme-swatch").forEach(s => {
   s.addEventListener("click", function() {
-    const theme = this.dataset.theme;
     document.body.classList.forEach(c => { if (c.startsWith("theme-")) document.body.classList.remove(c); });
-    document.body.classList.add("theme-" + theme);
-    localStorage.setItem("theme", theme);
+    document.body.classList.add("theme-" + this.dataset.theme);
+    localStorage.setItem("theme", this.dataset.theme);
     document.querySelectorAll(".theme-swatch").forEach(x => x.classList.remove("active"));
     this.classList.add("active");
   });
 });
 
-// ── NAVIGATION ──────────────────────────
+// ── NAVIGATION ─────────────────────────────────────────
 let currentPage = "home";
+const NAV_PAGES = ["home","search","ai","games","more"];
 
 function navigateTo(pageId) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-
   const page = document.getElementById("page-" + pageId);
   const tab  = document.querySelector(`.nav-tab[data-page="${pageId}"]`);
   if (page) page.classList.add("active");
   if (tab)  tab.classList.add("active");
   currentPage = pageId;
-
-  // Scroll page content to top
   document.getElementById("page-content").scrollTo(0, 0);
+  // Trigger page-specific load
+  if (pageId === "weather") loadWeatherPage();
+  if (pageId === "news")    loadNews("general");
+  if (pageId === "chat")    initChat();
 }
 
-document.querySelectorAll(".nav-tab").forEach(btn => {
-  btn.addEventListener("click", () => navigateTo(btn.dataset.page));
-});
-
-// Quick tiles (home shortcuts to pages)
+document.querySelectorAll(".nav-tab").forEach(btn => btn.addEventListener("click", () => navigateTo(btn.dataset.page)));
 document.querySelectorAll(".quick-tile[data-page]").forEach(tile => {
-  tile.addEventListener("click", (e) => {
-    e.preventDefault();
-    navigateTo(tile.dataset.page);
-  });
+  tile.addEventListener("click", e => { e.preventDefault(); navigateTo(tile.dataset.page); });
 });
-
-// Settings header btn → goes to More page
 document.getElementById("settingsHeaderBtn")?.addEventListener("click", () => navigateTo("more"));
 
-// ── CLOCK ───────────────────────────────
-function updateClock() {
+// ── CLOCK ──────────────────────────────────────────────
+setInterval(() => {
   const el = document.getElementById("clock");
   if (el) el.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-setInterval(updateClock, 1000);
-updateClock();
+}, 1000);
 
-// ── WEATHER ─────────────────────────────
+// ── WEATHER (home chip) ────────────────────────────────
 let lastTempC = null;
 let tempUnit  = localStorage.getItem("tempUnit") || "C";
 
-function renderWeather() {
+function renderWeatherChip() {
   const chip = document.getElementById("weatherChip");
   if (!chip || lastTempC === null) return;
   const t = tempUnit === "C" ? Math.round(lastTempC) + "°C" : Math.round(lastTempC * 9/5 + 32) + "°F";
   chip.textContent = "🌤 " + t;
 }
 
-(async function loadWeather() {
+let lastCoords = null;
+(async function() {
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(async pos => {
+    lastCoords = pos.coords;
     try {
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true`);
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true&hourly=relative_humidity_2m,windspeed_10m,apparent_temperature&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5`);
       const d = await r.json();
       lastTempC = d.current_weather.temperature;
-      renderWeather();
+      window._weatherData = d;
+      renderWeatherChip();
     } catch {}
   }, () => {});
 })();
 
-// Temp unit toggle in settings
 const tempToggle = document.getElementById("temp-toggle");
 if (tempUnit === "F" && tempToggle) tempToggle.classList.add("on");
-
 tempToggle?.addEventListener("click", function() {
   tempUnit = tempUnit === "C" ? "F" : "C";
   localStorage.setItem("tempUnit", tempUnit);
   this.classList.toggle("on", tempUnit === "F");
-  document.getElementById("temp-unit-sub").textContent =
-    tempUnit === "C" ? "Currently Celsius (°C)" : "Currently Fahrenheit (°F)";
-  renderWeather();
+  document.getElementById("temp-unit-sub").textContent = tempUnit === "C" ? "Currently Celsius (°C)" : "Currently Fahrenheit (°F)";
+  renderWeatherChip();
 });
 
-// ── MUSIC ───────────────────────────────
-const music        = document.getElementById("bgMusic");
-let musicEnabled   = localStorage.getItem("music") === "true";
-const musicBtn     = document.getElementById("musicToggle");
-const musicSettBtn = document.getElementById("music-settings-toggle");
+// ── WEATHER PAGE ───────────────────────────────────────
+const WMO = {0:"☀️ Clear",1:"🌤 Mostly Clear",2:"⛅ Partly Cloudy",3:"☁️ Overcast",45:"🌫 Foggy",48:"🌫 Icy Fog",51:"🌦 Light Drizzle",53:"🌦 Drizzle",55:"🌧 Heavy Drizzle",61:"🌧 Light Rain",63:"🌧 Rain",65:"🌧 Heavy Rain",71:"🌨 Light Snow",73:"🌨 Snow",75:"❄️ Heavy Snow",80:"🌦 Rain Showers",81:"🌧 Heavy Showers",95:"⛈ Thunderstorm",96:"⛈ Hail Storm",99:"⛈ Heavy Hail"};
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+async function loadWeatherPage() {
+  const content = document.getElementById("weather-content");
+  const loader  = document.getElementById("weather-loader");
+  if (!loader) return;
+
+  // If we already have data from chip load, use it
+  if (window._weatherData && window._weatherData.daily) {
+    renderWeatherPage(window._weatherData);
+    return;
+  }
+
+  loader.style.display = "block";
+
+  if (!navigator.geolocation) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location required</div><div class="empty-state-text">Enable location permission to see weather.</div></div>`;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true&hourly=relative_humidity_2m,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5`);
+      const d = await r.json();
+      window._weatherData = d;
+      lastTempC = d.current_weather.temperature;
+      renderWeatherChip();
+      renderWeatherPage(d);
+    } catch(e) {
+      content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Couldn't load weather</div><div class="empty-state-text">${e.message}</div></div>`;
+    }
+  }, () => {
+    content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location denied</div><div class="empty-state-text">Enable location permission in your phone settings.</div></div>`;
+  });
+}
+
+function renderWeatherPage(d) {
+  const content = document.getElementById("weather-content");
+  const cw = d.current_weather;
+  const daily = d.daily;
+  const C2F = t => Math.round(t * 9/5 + 32);
+  const fmt  = t => tempUnit === "C" ? Math.round(t) + "°C" : C2F(t) + "°F";
+  const wmo  = code => WMO[code] || "🌡 " + code;
+
+  const forecastRows = daily.time.slice(0,5).map((dateStr, i) => {
+    const date = new Date(dateStr);
+    const day  = i === 0 ? "Today" : DAYS[date.getDay()];
+    const icon = (wmo(daily.weathercode[i]).split(" ")[0]) || "🌡";
+    const hi   = fmt(daily.temperature_2m_max[i]);
+    const lo   = fmt(daily.temperature_2m_min[i]);
+    return `<div class="forecast-row">
+      <span class="forecast-day">${day}</span>
+      <span class="forecast-icon">${icon}</span>
+      <span class="forecast-range">${lo} – ${hi}</span>
+    </div>`;
+  }).join("");
+
+  content.innerHTML = `
+    <div class="weather-hero">
+      <div class="weather-temp">${fmt(cw.temperature)}</div>
+      <div class="weather-desc">${wmo(cw.weathercode)}</div>
+      <div class="weather-loc">📍 Your Location</div>
+    </div>
+    <div class="weather-grid">
+      <div class="weather-card"><div class="weather-card-label">Wind</div><div class="weather-card-value">${Math.round(cw.windspeed)} km/h</div></div>
+      <div class="weather-card"><div class="weather-card-label">Precipitation</div><div class="weather-card-value">${daily.precipitation_probability_max?.[0] ?? '--'}%</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">5-Day Forecast</div>
+    ${forecastRows}`;
+}
+
+// ── NEWS ───────────────────────────────────────────────
+let newsCategory = "general";
+let newsLoaded   = {};
+
+document.querySelectorAll(".news-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".news-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    loadNews(btn.dataset.cat);
+  });
+});
+
+async function loadNews(cat) {
+  if (newsLoaded[cat]) return; // already loaded
+  newsCategory = cat;
+  const content = document.getElementById("news-content");
+  document.getElementById("news-loader").style.display = "block";
+  content.innerHTML = `<div class="feature-loader" id="news-loader"><div class="spinner"></div>Loading news…</div>`;
+
+  try {
+    // Use GNews free API (no key needed for basic use)
+    const r = await fetch(`https://gnews.io/api/v4/top-headlines?category=${cat}&lang=en&max=20&apikey=pub_free`);
+    if (!r.ok) throw new Error("news unavailable");
+    const d = await r.json();
+    if (!d.articles?.length) throw new Error("no articles");
+    renderNews(d.articles);
+    newsLoaded[cat] = true;
+  } catch {
+    // Fallback: use RSS via rss2json
+    try {
+      const feeds = {
+        general:"https://feeds.bbci.co.uk/news/rss.xml",
+        technology:"https://feeds.bbci.co.uk/news/technology/rss.xml",
+        business:"https://feeds.bbci.co.uk/news/business/rss.xml",
+        sports:"https://feeds.bbci.co.uk/news/sport/rss.xml",
+        entertainment:"https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+        health:"https://feeds.bbci.co.uk/news/health/rss.xml",
+        science:"https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
+      };
+      const feed = feeds[cat] || feeds.general;
+      const r2 = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=20`);
+      const d2 = await r2.json();
+      if (d2.items?.length) {
+        const articles = d2.items.map(item => ({
+          title: item.title,
+          description: item.description?.replace(/<[^>]*>/g,'').slice(0,200),
+          url: item.link,
+          source: { name: d2.feed.title || "BBC News" },
+          publishedAt: item.pubDate
+        }));
+        renderNews(articles);
+        newsLoaded[cat] = true;
+      } else throw new Error("no articles");
+    } catch {
+      document.getElementById("news-content").innerHTML = `<div class="empty-state"><div class="empty-state-icon">📰</div><div class="empty-state-title">News unavailable</div><div class="empty-state-text">Check your connection and try again.</div></div>`;
+    }
+  }
+}
+
+function renderNews(articles) {
+  const content = document.getElementById("news-content");
+  content.innerHTML = articles.map(a => `
+    <div class="news-card" onclick="window.open('${escHtml(a.url)}','_system')">
+      <div class="news-card-source">${escHtml(a.source?.name || "News")}</div>
+      <div class="news-card-title">${escHtml(a.title)}</div>
+      ${a.description ? `<div class="news-card-desc">${escHtml(a.description)}</div>` : ""}
+      <div class="news-card-time">${a.publishedAt ? new Date(a.publishedAt).toLocaleString() : ""}</div>
+    </div>`).join("");
+}
+
+// ── STOCKS ─────────────────────────────────────────────
+document.getElementById("stock-btn")?.addEventListener("click", () => {
+  const ticker = document.getElementById("stock-input").value.trim().toUpperCase();
+  if (ticker) lookupStock(ticker);
+});
+document.getElementById("stock-input")?.addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); const t = e.target.value.trim().toUpperCase(); if(t) lookupStock(t); }
+});
+
+async function lookupStock(ticker) {
+  const result = document.getElementById("stock-result");
+  result.innerHTML = `<div class="feature-loader"><div class="spinner"></div></div>`;
+  try {
+    // Yahoo Finance via allorigins proxy (no CORS)
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const outer = await r.json();
+    const d = JSON.parse(outer.contents);
+    const meta = d.chart.result[0].meta;
+    const price  = meta.regularMarketPrice;
+    const prev   = meta.previousClose || meta.chartPreviousClose;
+    const change = price - prev;
+    const pct    = ((change / prev) * 100).toFixed(2);
+    const up     = change >= 0;
+    const fmtP   = p => p.toFixed(2);
+    result.innerHTML = `
+      <div class="stock-hero">
+        <div class="stock-ticker">${ticker}</div>
+        <div class="stock-name">${meta.longName || meta.shortName || ticker}</div>
+        <div class="stock-price">$${fmtP(price)}</div>
+        <div class="stock-change ${up?'up':'down'}">${up?'+':''}${fmtP(change)} (${up?'+':''}${pct}%)</div>
+      </div>
+      <div class="weather-grid" style="margin-top:10px;">
+        <div class="weather-card"><div class="weather-card-label">Prev Close</div><div class="weather-card-value">$${fmtP(prev)}</div></div>
+        <div class="weather-card"><div class="weather-card-label">Currency</div><div class="weather-card-value">${meta.currency}</div></div>
+        <div class="weather-card"><div class="weather-card-label">Exchange</div><div class="weather-card-value">${meta.exchangeName}</div></div>
+        <div class="weather-card"><div class="weather-card-label">Market</div><div class="weather-card-value">${meta.marketState}</div></div>
+      </div>`;
+  } catch {
+    result.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📈</div><div class="empty-state-title">Couldn't find ${ticker}</div><div class="empty-state-text">Check the ticker symbol and try again.</div></div>`;
+  }
+}
+
+// ── TRANSLATOR ─────────────────────────────────────────
+const transInput  = document.getElementById("translate-input");
+const transOutput = document.getElementById("translate-output");
+const transBtn    = document.getElementById("translate-btn");
+const copyTransBtn = document.getElementById("copy-translation-btn");
+const charCount   = document.getElementById("translate-char-count");
+
+transInput?.addEventListener("input", () => {
+  charCount.textContent = transInput.value.length;
+});
+
+document.getElementById("swap-langs-btn")?.addEventListener("click", () => {
+  const from = document.getElementById("lang-from");
+  const to   = document.getElementById("lang-to");
+  const fv   = from.value; const tv = to.value;
+  if (fv !== "auto") { from.value = tv; to.value = fv; }
+  if (transOutput.value) { transInput.value = transOutput.value; transOutput.value = ""; charCount.textContent = transInput.value.length; }
+});
+
+transBtn?.addEventListener("click", async () => {
+  const text = transInput.value.trim();
+  if (!text) return;
+  const from = document.getElementById("lang-from").value;
+  const to   = document.getElementById("lang-to").value;
+  transBtn.textContent = "Translating…"; transBtn.disabled = true;
+  try {
+    // Use MyMemory free translation API (no key needed, 5000 chars/day free)
+    const langPair = from === "auto" ? `en|${to}` : `${from}|${to}`;
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}`);
+    const d = await r.json();
+    if (d.responseStatus === 200) {
+      transOutput.value = d.responseData.translatedText;
+      copyTransBtn.style.display = "block";
+    } else throw new Error(d.responseDetails || "Translation failed");
+  } catch(e) {
+    transOutput.value = "Translation failed: " + e.message;
+  }
+  transBtn.textContent = "Translate"; transBtn.disabled = false;
+});
+
+copyTransBtn?.addEventListener("click", () => {
+  navigator.clipboard?.writeText(transOutput.value).then(() => showToast("Copied!")).catch(() => {
+    transOutput.select(); document.execCommand("copy"); showToast("Copied!");
+  });
+});
+
+// ── URL SHORTENER ──────────────────────────────────────
+const shortHistory = JSON.parse(localStorage.getItem("short_history") || "[]");
+
+function renderShortHistory() {
+  const el = document.getElementById("shortener-history");
+  if (!el) return;
+  el.innerHTML = shortHistory.slice(-5).reverse().map(item => `
+    <div class="short-result" style="margin-bottom:8px;">
+      <div class="short-url">${escHtml(item.short)}</div>
+      <button class="copy-btn" onclick="navigator.clipboard?.writeText('${escHtml(item.short)}').then(()=>showToast('Copied!'))">Copy</button>
+    </div>`).join("") || `<div style="color:var(--mut);font-size:13px;">No history yet</div>`;
+}
+
+document.getElementById("shortener-btn")?.addEventListener("click", async () => {
+  const url = document.getElementById("shortener-input").value.trim();
+  if (!url) { showToast("Enter a URL first"); return; }
+  const btn = document.getElementById("shortener-btn");
+  btn.textContent = "Shortening…"; btn.disabled = true;
+  try {
+    // TinyURL free API (no key needed)
+    const r = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
+    if (!r.ok) throw new Error("Service unavailable");
+    const shortUrl = await r.text();
+    document.getElementById("shortener-result").style.display = "block";
+    document.getElementById("shortener-result").innerHTML = `
+      <div class="short-result">
+        <div class="short-url">${escHtml(shortUrl)}</div>
+        <button class="copy-btn" onclick="navigator.clipboard?.writeText('${escHtml(shortUrl)}').then(()=>showToast('Copied!'))">Copy</button>
+      </div>`;
+    shortHistory.push({ original: url, short: shortUrl });
+    localStorage.setItem("short_history", JSON.stringify(shortHistory.slice(-20)));
+    renderShortHistory();
+  } catch(e) {
+    showToast("Failed: " + e.message);
+  }
+  btn.textContent = "Shorten URL"; btn.disabled = false;
+});
+
+renderShortHistory();
+
+// ── CHAT (Supabase realtime) ────────────────────────────
+let chatChannel = null;
+let chatName    = localStorage.getItem("chatName") || "";
+let chatInited  = false;
+
+function initChat() {
+  if (!chatName) {
+    document.getElementById("chat-name-setup").style.display = "block";
+    document.getElementById("chat-messages").style.display   = "none";
+    document.getElementById("chat-input-bar").style.display  = "none";
+    return;
+  }
+  showChatUI();
+}
+
+document.getElementById("chat-name-btn")?.addEventListener("click", () => {
+  const name = document.getElementById("chat-name-input").value.trim();
+  if (!name) { showToast("Enter a name"); return; }
+  chatName = name;
+  localStorage.setItem("chatName", name);
+  showChatUI();
+});
+
+function showChatUI() {
+  document.getElementById("chat-name-setup").style.display = "none";
+  document.getElementById("chat-messages").style.display   = "flex";
+  document.getElementById("chat-input-bar").style.display  = "flex";
+  if (chatInited) return;
+  chatInited = true;
+  // Subscribe to Supabase realtime messages table
+  chatChannel = sb.channel("chat360_public")
+    .on("broadcast", { event: "message" }, ({ payload }) => {
+      appendChatBubble(payload.name, payload.text, payload.name === chatName);
+    })
+    .subscribe();
+  appendChatBubble("360", "Welcome to 360 Chat! Say hello 👋", false);
+}
+
+function appendChatBubble(name, text, isMine) {
+  const msgs = document.getElementById("chat-messages");
+  const wrap = document.createElement("div");
+  wrap.className = "chat-bubble-wrap" + (isMine ? " mine" : "");
+  wrap.innerHTML = `
+    <div class="chat-avatar">${escHtml(name[0]?.toUpperCase()||"?")}</div>
+    <div class="chat-bubble ${isMine?"mine":"them"}">
+      ${!isMine ? `<div style="font-size:11px;font-weight:700;color:var(--a);margin-bottom:3px;">${escHtml(name)}</div>` : ""}
+      ${escHtml(text)}
+    </div>`;
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+document.getElementById("chat-send-btn")?.addEventListener("click", sendChatMessage);
+document.getElementById("chat-input")?.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+});
+
+async function sendChatMessage() {
+  const input = document.getElementById("chat-input");
+  const text  = input.value.trim();
+  if (!text || !chatName) return;
+  input.value = "";
+  input.style.height = "auto";
+  appendChatBubble(chatName, text, true);
+  try {
+    await chatChannel?.send({ type: "broadcast", event: "message", payload: { name: chatName, text } });
+  } catch {}
+}
+
+// ── MUSIC ──────────────────────────────────────────────
+const music = document.getElementById("bgMusic");
+let musicEnabled = localStorage.getItem("music") === "true";
 
 function syncMusic() {
+  const musicBtn    = document.getElementById("musicToggle");
+  const musicSettBtn = document.getElementById("music-settings-toggle");
   if (musicBtn) musicBtn.textContent = musicEnabled ? "On" : "Off";
   if (musicSettBtn) musicSettBtn.classList.toggle("on", musicEnabled);
   document.getElementById("musicStrip").style.display = "flex";
@@ -535,88 +992,60 @@ function syncMusic() {
   else if (music) music.pause();
 }
 
-musicBtn?.addEventListener("click", () => {
-  musicEnabled = !musicEnabled;
-  localStorage.setItem("music", musicEnabled);
-  syncMusic();
-});
-
-musicSettBtn?.addEventListener("click", function() {
-  musicEnabled = !musicEnabled;
-  localStorage.setItem("music", musicEnabled);
-  syncMusic();
-});
-
+document.getElementById("musicToggle")?.addEventListener("click", () => { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
+document.getElementById("music-settings-toggle")?.addEventListener("click", function() { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
 syncMusic();
 
-// ── AUTH ─────────────────────────────────
-const authSheet    = document.getElementById("auth-sheet");
-const authBackdrop = document.getElementById("auth-backdrop");
-const authClose    = document.getElementById("auth-close-btn");
-
-function openAuth() { authSheet.classList.add("open"); }
+// ── AUTH ───────────────────────────────────────────────
+const authSheet = document.getElementById("auth-sheet");
+function openAuth()  { authSheet.classList.add("open"); }
 function closeAuth() { authSheet.classList.remove("open"); }
 
 document.getElementById("signInHeaderBtn")?.addEventListener("click", openAuth);
+document.getElementById("auth-backdrop")?.addEventListener("click", closeAuth);
+document.getElementById("auth-close-btn")?.addEventListener("click", closeAuth);
 document.getElementById("profile-row")?.addEventListener("click", () => {
   sb.auth.getUser().then(({ data }) => {
-    if (data?.user) {
-      sb.auth.signOut().then(() => { showToast("Signed out"); updateProfileUI(null); });
-    } else {
-      openAuth();
-    }
+    if (data?.user) { sb.auth.signOut().then(() => { showToast("Signed out"); updateProfileUI(null); }); }
+    else openAuth();
   });
 });
-
-authBackdrop.addEventListener("click", closeAuth);
-authClose.addEventListener("click", closeAuth);
 
 document.getElementById("auth-login-btn")?.addEventListener("click", async () => {
   const email = document.getElementById("auth-email").value;
   const pass  = document.getElementById("auth-password").value;
   const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) {
-    document.getElementById("auth-error").textContent = error.message;
-  } else {
-    closeAuth();
-    showToast("Signed in!");
-  }
+  if (error) document.getElementById("auth-error").textContent = error.message;
+  else { closeAuth(); showToast("Signed in!"); }
 });
 
-document.getElementById("github-login")?.addEventListener("click", async () => {
-  await sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: location.origin } });
-});
-document.getElementById("google-login")?.addEventListener("click", async () => {
-  await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin } });
-});
+document.getElementById("github-login")?.addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "github" }));
+document.getElementById("google-login")?.addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "google" }));
 
 function updateProfileUI(user) {
   const nameEl  = document.getElementById("profile-name-label");
   const emailEl = document.getElementById("profile-email-label");
   const btnEl   = document.getElementById("signInHeaderBtn");
-
   if (user) {
     const uname = user.user_metadata?.username || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-    if (nameEl)  nameEl.textContent  = "@" + uname;
+    if (nameEl) nameEl.textContent = "@" + uname;
     if (emailEl) emailEl.textContent = user.email || "";
-    if (btnEl)   btnEl.textContent   = uname[0].toUpperCase();
-    btnEl?.style.setProperty("background", "linear-gradient(135deg, var(--a), var(--a2))");
+    if (btnEl) { btnEl.textContent = uname[0].toUpperCase(); btnEl.style.background = "linear-gradient(135deg, var(--a), var(--a2))"; }
   } else {
-    if (nameEl)  nameEl.textContent  = "Sign in to 360";
+    if (nameEl) nameEl.textContent = "Sign in to 360";
     if (emailEl) emailEl.textContent = "Sync your preferences across devices";
-    if (btnEl)   { btnEl.textContent = "👤"; btnEl.style.removeProperty("background"); }
+    if (btnEl) { btnEl.textContent = "👤"; btnEl.style.removeProperty("background"); }
   }
 }
-
 sb.auth.getSession().then(({ data }) => updateProfileUI(data?.session?.user || null));
 sb.auth.onAuthStateChange((_, session) => updateProfileUI(session?.user || null));
 
-// ── SEARCH ───────────────────────────────
-let searchTab  = "all";
-let searchPage = 1;
-let lastQuery  = "";
+// ── SEARCH ─────────────────────────────────────────────
+let searchTab = "all";
+function escHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
-// Home form submits → go to search page
 document.getElementById("home-search-form")?.addEventListener("submit", e => {
   e.preventDefault();
   const q = document.getElementById("home-search-input").value.trim();
@@ -626,15 +1055,12 @@ document.getElementById("home-search-form")?.addEventListener("submit", e => {
   runSearch(q, "all", 1);
 });
 
-// Search page form
 document.getElementById("search-page-form")?.addEventListener("submit", e => {
   e.preventDefault();
   const q = document.getElementById("search-page-input").value.trim();
-  if (!q) return;
-  runSearch(q, searchTab, 1);
+  if (q) runSearch(q, searchTab, 1);
 });
 
-// Tab buttons
 document.querySelectorAll(".search-tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".search-tab-btn").forEach(b => b.classList.remove("active"));
@@ -645,64 +1071,49 @@ document.querySelectorAll(".search-tab-btn").forEach(btn => {
   });
 });
 
-function escHtml(s) {
-  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
 async function runSearch(q, tab, page) {
-  lastQuery  = q;
-  searchTab  = tab;
-  searchPage = page;
+  const loader  = document.getElementById("search-loader");
+  const empty   = document.getElementById("search-empty");
+  const resWrap = document.getElementById("results-container");
+  const imgGrid = document.getElementById("image-results");
+  const kpWrap  = document.getElementById("knowledge-panel-wrap");
+  const pagWrap = document.getElementById("pagination-wrap");
 
-  const body     = document.getElementById("search-results-body");
-  const loader   = document.getElementById("search-loader");
-  const empty    = document.getElementById("search-empty");
-  const resWrap  = document.getElementById("results-container");
-  const imgGrid  = document.getElementById("image-results");
-  const kpWrap   = document.getElementById("knowledge-panel-wrap");
-  const pagWrap  = document.getElementById("pagination-wrap");
-
-  empty.style.display  = "none";
+  empty.style.display   = "none";
   loader.classList.add("visible");
-  resWrap.innerHTML    = "";
-  imgGrid.innerHTML    = "";
-  kpWrap.innerHTML     = "";
-  pagWrap.innerHTML    = "";
+  resWrap.innerHTML = imgGrid.innerHTML = kpWrap.innerHTML = pagWrap.innerHTML = "";
   imgGrid.style.display = "none";
 
   try {
-    const res  = await fetch(EDGE_URL, {
+    const res  = await fetch(SEARCH_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_HEADERS,
       body: JSON.stringify({ q, tab, page, safe: "moderate" })
     });
     const data = await res.json();
     loader.classList.remove("visible");
 
     if (data.kp) {
-      kpWrap.innerHTML = `
-        <div class="knowledge-panel">
-          <div class="kp-title">${escHtml(data.kp.title)}</div>
-          ${data.kp.type ? `<div class="kp-type">${escHtml(data.kp.type)}</div>` : ""}
-          ${data.kp.description ? `<div class="kp-desc">${escHtml(data.kp.description)}</div>` : ""}
-        </div>`;
+      kpWrap.innerHTML = `<div class="knowledge-panel">
+        <div class="kp-title">${escHtml(data.kp.title)}</div>
+        ${data.kp.type ? `<div class="kp-type">${escHtml(data.kp.type)}</div>` : ""}
+        ${data.kp.description ? `<div class="kp-desc">${escHtml(data.kp.description)}</div>` : ""}
+      </div>`;
     }
 
     if (tab === "images" && data.images?.length) {
       imgGrid.style.display = "grid";
       imgGrid.innerHTML = data.images.map(img => `
-        <div class="image-grid-item" onclick="openIframe('${escHtml(img.url || img.contextLink || "#")}','Image')">
-          <img src="${escHtml(img.thumbnail || img.src)}" alt="${escHtml(img.title)}" loading="lazy" />
+        <div class="image-grid-item" onclick="openIframe('${escHtml(img.url||img.contextLink||"#")}','Image')">
+          <img src="${escHtml(img.thumbnail||img.src)}" alt="${escHtml(img.title)}" loading="lazy" />
         </div>`).join("");
     } else if (data.web?.length) {
       resWrap.innerHTML = data.web.map(r => `
-        <div class="result-card" onclick="window.open('${escHtml(r.url)}','_blank')">
-          <div class="result-card-url">${escHtml(r.url?.replace(/^https?:\/\//, "").split("/")[0])}</div>
+        <div class="result-card" onclick="window.open('${escHtml(r.url)}','_system')">
+          <div class="result-card-url">${escHtml((r.url||"").replace(/^https?:\/\//,"").split("/")[0])}</div>
           <div class="result-card-title">${escHtml(r.title)}</div>
           <div class="result-card-snippet">${escHtml(r.snippet)}</div>
         </div>`).join("");
-
-      // Pagination
       if (data.totalPages > 1) {
         const btns = [];
         if (page > 1) btns.push(`<button onclick="runSearch('${escHtml(q)}','${tab}',${page-1})" style="padding:10px 22px;border-radius:99px;border:1px solid var(--br);background:var(--surface);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit;">← Prev</button>`);
@@ -712,31 +1123,23 @@ async function runSearch(q, tab, page) {
     } else {
       resWrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No results</div><div class="empty-state-text">Try different keywords.</div></div>`;
     }
-  } catch (err) {
+  } catch(err) {
     loader.classList.remove("visible");
-    resWrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Search unavailable</div><div class="empty-state-text">Check your connection and try again.</div></div>`;
+    resWrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Search failed</div><div class="empty-state-text">${escHtml(err.message)}</div></div>`;
   }
 }
 
-// ── AI CHAT ──────────────────────────────
-const AI_API_URL = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/ai-chat";
-let aiHistory    = [];
-
+// ── AI CHAT ────────────────────────────────────────────
+let aiHistory = [];
 const aiMessages = document.getElementById("ai-messages");
 const aiInput    = document.getElementById("ai-input");
-const aiSendBtn  = document.getElementById("ai-send-btn");
 
 function appendAiBubble(role, text) {
-  const empty = document.getElementById("ai-empty");
-  if (empty) empty.style.display = "none";
-
+  document.getElementById("ai-empty")?.remove();
   const div = document.createElement("div");
   div.className = `ai-bubble ${role}`;
-  if (role === "assistant") {
-    div.innerHTML = typeof marked !== "undefined" ? marked.parse(text) : text.replace(/\n/g, "<br>");
-  } else {
-    div.textContent = text;
-  }
+  if (role === "assistant") div.innerHTML = typeof marked !== "undefined" ? marked.parse(text) : text.replace(/\n/g,"<br>");
+  else div.textContent = text;
   aiMessages.appendChild(div);
   aiMessages.scrollTop = aiMessages.scrollHeight;
   return div;
@@ -745,55 +1148,43 @@ function appendAiBubble(role, text) {
 async function sendAiMessage() {
   const text = aiInput.value.trim();
   if (!text) return;
-  aiInput.value = "";
-  aiInput.style.height = "auto";
-
+  aiInput.value = ""; aiInput.style.height = "auto";
   appendAiBubble("user", text);
   aiHistory.push({ role: "user", content: text });
-
-  const thinkingDiv = appendAiBubble("assistant", "…");
-
+  const thinking = appendAiBubble("assistant", "…");
   try {
-    const res  = await fetch(AI_API_URL, {
+    const res  = await fetch(AI_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_HEADERS,
       body: JSON.stringify({ messages: aiHistory })
     });
     const data = await res.json();
-    const reply = data.reply || data.content || data.message || "Sorry, I couldn't get a response.";
-    thinkingDiv.innerHTML = typeof marked !== "undefined" ? marked.parse(reply) : reply.replace(/\n/g,"<br>");
+    const reply = data.reply || data.content || data.message || data.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
+    thinking.innerHTML = typeof marked !== "undefined" ? marked.parse(reply) : reply.replace(/\n/g,"<br>");
     aiHistory.push({ role: "assistant", content: reply });
-  } catch {
-    thinkingDiv.textContent = "Network error. Please try again.";
+  } catch(e) {
+    thinking.textContent = "Network error: " + e.message;
   }
 }
 
-aiSendBtn?.addEventListener("click", sendAiMessage);
-aiInput?.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); }
-});
+document.getElementById("ai-send-btn")?.addEventListener("click", sendAiMessage);
+aiInput?.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } });
+aiInput?.addEventListener("input", function() { this.style.height = "auto"; this.style.height = Math.min(this.scrollHeight, 120) + "px"; });
 
-// Auto-resize textarea
-aiInput?.addEventListener("input", function() {
-  this.style.height = "auto";
-  this.style.height = Math.min(this.scrollHeight, 120) + "px";
-});
-
-// ── GAMES ────────────────────────────────
+// ── GAMES ──────────────────────────────────────────────
 const GAMES = [
-  { name: "2048",          icon: "🔢", tag: "Puzzle",  url: "https://play2048.co/" },
-  { name: "Snake",         icon: "🐍", tag: "Classic", url: "https://www.google.com/fbx?fbx=snake_arcade" },
-  { name: "Sudoku",        icon: "🧩", tag: "Logic",   url: "https://sudoku.com/" },
-  { name: "Chess",         icon: "♟️",  tag: "Strategy",url: "https://www.chess.com/play/computer" },
-  { name: "Wordle",        icon: "📝", tag: "Word",    url: "https://www.nytimes.com/games/wordle/index.html" },
-  { name: "Pac-Man",       icon: "👻", tag: "Arcade",  url: "https://www.google.com/logos/2010/pacman10-i.html" },
-  { name: "Minesweeper",   icon: "💣", tag: "Classic", url: "https://minesweeper.online/" },
-  { name: "Tetris",        icon: "🧱", tag: "Arcade",  url: "https://jstris.jezevec10.com/" },
-  { name: "Crossword",     icon: "🔠", tag: "Word",    url: "https://www.nytimes.com/crosswords" },
-  { name: "Flappy Bird",   icon: "🐦", tag: "Arcade",  url: "https://flappybird.io/" },
+  { name: "2048",        icon: "🔢", tag: "Puzzle",   url: "https://play2048.co/" },
+  { name: "Snake",       icon: "🐍", tag: "Classic",  url: "https://www.google.com/fbx?fbx=snake_arcade" },
+  { name: "Sudoku",      icon: "🧩", tag: "Logic",    url: "https://sudoku.com/" },
+  { name: "Chess",       icon: "♟️",  tag: "Strategy", url: "https://www.chess.com/play/computer" },
+  { name: "Wordle",      icon: "📝", tag: "Word",     url: "https://www.nytimes.com/games/wordle/index.html" },
+  { name: "Pac-Man",     icon: "👻", tag: "Arcade",   url: "https://www.google.com/logos/2010/pacman10-i.html" },
+  { name: "Minesweeper", icon: "💣", tag: "Classic",  url: "https://minesweeper.online/" },
+  { name: "Tetris",      icon: "🧱", tag: "Arcade",   url: "https://jstris.jezevec10.com/" },
+  { name: "Crossword",   icon: "🔠", tag: "Word",     url: "https://www.nytimes.com/crosswords" },
+  { name: "Flappy Bird", icon: "🐦", tag: "Arcade",   url: "https://flappybird.io/" },
 ];
-
-function renderGames() {
+(function() {
   const grid = document.getElementById("games-grid");
   if (!grid) return;
   grid.innerHTML = GAMES.map(g => `
@@ -802,37 +1193,34 @@ function renderGames() {
       <span class="game-card-name">${g.name}</span>
       <span class="game-card-tag">${g.tag}</span>
     </div>`).join("");
-}
-renderGames();
+})();
 
-// ── IFRAME VIEWER ────────────────────────
+// ── IFRAME VIEWER ──────────────────────────────────────
 const iframeViewer = document.getElementById("iframe-viewer");
 const iframeFrame  = document.getElementById("iframe-frame");
 const iframeTitle  = document.getElementById("iframe-title");
-const iframeClose  = document.getElementById("iframe-close-btn");
 
 function openIframe(url, title) {
   iframeTitle.textContent = title || "Loading…";
   iframeFrame.src = url;
   iframeViewer.classList.add("open");
 }
-
 function closeIframe() {
   iframeViewer.classList.remove("open");
   setTimeout(() => { iframeFrame.src = ""; }, 350);
 }
+document.getElementById("iframe-close-btn")?.addEventListener("click", closeIframe);
 
-iframeClose?.addEventListener("click", closeIframe);
-
-// ── ANDROID BACK BUTTON (TWA) ─────────────
-document.addEventListener("backbutton", (e) => {
+// ── BACK BUTTON ────────────────────────────────────────
+document.addEventListener("backbutton", e => {
   e.preventDefault();
   if (iframeViewer.classList.contains("open")) { closeIframe(); return; }
   if (authSheet.classList.contains("open"))    { closeAuth(); return; }
+  const featurePages = ["weather","news","stocks","translator","chat","shortener"];
+  if (featurePages.includes(currentPage))      { navigateTo("home"); return; }
   if (currentPage !== "home")                  { navigateTo("home"); return; }
-  if (typeof navigator.app !== "undefined") navigator.app.exitApp();
+  if (typeof navigator.app !== "undefined")    navigator.app.exitApp();
 }, false);
-
 </script>
 </body>
 </html>
