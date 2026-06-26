@@ -1,2 +1,1 @@
-# 360ForAndroid
-360 For Android
+# 360_Android

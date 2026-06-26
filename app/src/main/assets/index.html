@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>360</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="assets/css/android.css" />
+  <script src="assets/js/supabase.min.js"></script>
+  <script src="assets/js/marked.min.js"></script>
+  <style>
+    .feature-page { padding: 16px; }
+
+    /* Weather */
+    .weather-hero { background: linear-gradient(135deg, var(--a), var(--a2)); border-radius: var(--radius); padding: 28px 20px; text-align: center; color: white; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .weather-temp { font-size: 72px; font-weight: 900; line-height: 1; }
+    .weather-desc { font-size: 18px; font-weight: 600; opacity: .9; margin-top: 4px; }
+    .weather-loc  { font-size: 13px; opacity: .75; margin-top: 6px; }
+    .weather-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 16px; }
+    .weather-card { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--br); padding: 14px; box-shadow: var(--shadow-sm); }
+    .weather-card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--mut); margin-bottom: 4px; }
+    .weather-card-value { font-size: 20px; font-weight: 700; color: var(--txt); }
+    .forecast-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--br); margin-bottom: 8px; box-shadow: var(--shadow-sm); }
+    .forecast-day { font-size: 14px; font-weight: 600; color: var(--txt); width: 60px; }
+    .forecast-icon { font-size: 22px; }
+    .forecast-range { font-size: 14px; font-weight: 600; color: var(--txt2); }
+
+    /* News */
+    .news-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--br); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .15s; }
+    .news-card:active { transform: scale(.98); }
+    .news-card-source { font-size: 11px; font-weight: 700; color: var(--a); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    .news-card-title { font-size: 15px; font-weight: 700; color: var(--txt); line-height: 1.4; margin-bottom: 6px; }
+    .news-card-desc { font-size: 13px; color: var(--txt2); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .news-card-time { font-size: 11px; color: var(--mut); margin-top: 8px; }
+    .news-tabs { display: flex; gap: 6px; padding: 12px 16px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .news-tabs::-webkit-scrollbar { display: none; }
+    .news-tab { flex-shrink: 0; padding: 7px 16px; border-radius: 99px; border: none; background: var(--surface2); color: var(--mut); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .news-tab.active { background: var(--a); color: white; }
+
+    /* Stocks */
+    .stock-hero { background: var(--card); border-radius: var(--radius); border: 1px solid var(--br); padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
+    .stock-ticker { font-size: 20px; font-weight: 900; color: var(--txt); }
+    .stock-name { font-size: 12px; color: var(--mut); margin-bottom: 8px; }
+    .stock-price { font-size: 32px; font-weight: 900; color: var(--txt); }
+    .stock-change { font-size: 14px; font-weight: 700; padding: 3px 10px; border-radius: 99px; display: inline-block; margin-top: 4px; }
+    .stock-change.up { background: rgba(16,185,129,.15); color: #10b981; }
+    .stock-change.down { background: rgba(239,68,68,.15); color: #ef4444; }
+    .stock-search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .stock-search-input { flex: 1; padding: 12px 16px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; outline: none; }
+    .stock-search-input:focus { border-color: var(--a); }
+    .stock-search-btn { padding: 12px 20px; border-radius: var(--radius-sm); border: none; background: var(--a); color: white; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* Translator */
+    .translator-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .lang-row { display: flex; align-items: center; gap: 8px; }
+    .lang-select { flex: 1; padding: 10px 12px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 14px; font-family: inherit; outline: none; }
+    .swap-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--br); background: var(--surface2); color: var(--a); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .translate-input, .translate-output { width: 100%; padding: 14px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; resize: none; outline: none; min-height: 100px; box-sizing: border-box; }
+    .translate-input:focus { border-color: var(--a); }
+    .translate-output { background: var(--card); color: var(--txt2); }
+    .translate-btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .char-count { font-size: 11px; color: var(--mut); text-align: right; }
+
+    /* URL Shortener */
+    .shortener-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .shortener-input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; outline: none; box-sizing: border-box; }
+    .shortener-input:focus { border-color: var(--a); }
+    .shortener-btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .short-result { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--br); padding: 16px; display: flex; align-items: center; gap: 10px; }
+    .short-url { flex: 1; font-size: 15px; font-weight: 600; color: var(--a); word-break: break-all; }
+    .copy-btn { padding: 8px 16px; border-radius: 99px; border: 1px solid var(--a); background: transparent; color: var(--a); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+
+    /* Chat */
+    .chat-page { display: flex; flex-direction: column; height: 100%; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; }
+    .chat-bubble-wrap { display: flex; gap: 8px; align-items: flex-end; }
+    .chat-bubble-wrap.mine { flex-direction: row-reverse; }
+    .chat-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--a), var(--a2)); display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: 700; flex-shrink: 0; }
+    .chat-bubble { max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; word-break: break-word; }
+    .chat-bubble.them { background: var(--card); color: var(--txt); border: 1px solid var(--br); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
+    .chat-bubble.mine { background: var(--a); color: white; border-bottom-right-radius: 4px; }
+    .chat-input-bar { padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--br); display: flex; gap: 10px; align-items: flex-end; }
+    .chat-gate { padding: 40px 24px; text-align: center; }
+    .chat-gate-icon { font-size: 48px; margin-bottom: 16px; }
+    .chat-gate-title { font-size: 22px; font-weight: 700; color: var(--txt); margin-bottom: 8px; }
+    .chat-gate-sub { font-size: 14px; color: var(--mut); margin-bottom: 24px; line-height: 1.6; }
+    .chat-gate-btn { padding: 14px 32px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* Feature headers */
+    .feature-header { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--br); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .feature-back-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--surface2); color: var(--txt); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .feature-header-title { font-size: 18px; font-weight: 700; color: var(--txt); }
+    .feature-loader { text-align: center; padding: 60px 20px; color: var(--mut); }
+    .feature-loader .spinner { width: 32px; height: 32px; border: 3px solid var(--br); border-top-color: var(--a); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="splash-num" id="s3">3</div>
+  <div class="splash-num" id="s6">6</div>
+  <div class="splash-num" id="s0">0</div>
+</div>
+
+<div id="app-shell">
+  <header id="app-header">
+    <div class="header-logo">360</div>
+    <div class="header-actions">
+      <div id="user-area">
+        <button class="header-icon-btn" id="signInHeaderBtn" title="Sign In">👤</button>
+      </div>
+      <button class="header-icon-btn" id="settingsHeaderBtn" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <main id="page-content">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="home-page">
+        <div class="home-top-row">
+          <div class="home-clock" id="clock">--:--</div>
+          <div class="home-weather" id="weatherChip">🌤 --°</div>
+        </div>
+        <div class="home-logo-wrap">
+          <div class="home-logo">360</div>
+          <div class="home-tagline">Everything You Need In Your Circle.</div>
+        </div>
+        <div class="search-bar-wrap">
+          <form id="home-search-form">
+            <div class="search-bar">
+              <span class="search-bar-icon">🔍</span>
+              <input id="home-search-input" type="text" placeholder="Search with 360..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
+              <button class="search-bar-btn" type="submit">Go</button>
+            </div>
+          </form>
+        </div>
+        <div class="quick-tiles">
+          <a class="quick-tile" data-page="ai"><span class="qt-icon">🤖</span><span class="qt-label">AI</span></a>
+          <a class="quick-tile" data-page="weather"><span class="qt-icon">🌤</span><span class="qt-label">Weather</span></a>
+          <a class="quick-tile" data-page="news"><span class="qt-icon">📰</span><span class="qt-label">News</span></a>
+          <a class="quick-tile" data-page="games"><span class="qt-icon">🎮</span><span class="qt-label">Games</span></a>
+          <a class="quick-tile" data-page="stocks"><span class="qt-icon">📈</span><span class="qt-label">Stocks</span></a>
+          <a class="quick-tile" data-page="translator"><span class="qt-icon">🌐</span><span class="qt-label">Translate</span></a>
+          <a class="quick-tile" data-page="chat"><span class="qt-icon">💬</span><span class="qt-label">Chat</span></a>
+          <a class="quick-tile" data-page="shortener"><span class="qt-icon">🔗</span><span class="qt-label">Shorten</span></a>
+        </div>
+        <div class="music-strip" id="musicStrip" style="display:none;">
+          <span class="music-strip-icon">🎵</span>
+          <span class="music-strip-label">Ambient Music</span>
+          <button class="music-toggle-btn" id="musicToggle">Off</button>
+        </div>
+        <audio id="bgMusic" src="https://360-search.com/calm360.mp3" loop></audio>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="page" id="page-search">
+      <div class="search-page">
+        <div class="search-page-header">
+          <form id="search-page-form">
+            <div class="search-bar-compact">
+              <input id="search-page-input" type="text" placeholder="Search..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
+              <button class="search-bar-compact-btn" type="submit">🔍</button>
+            </div>
+          </form>
+          <div class="search-tabs">
+            <button class="search-tab-btn active" data-tab="all">All</button>
+            <button class="search-tab-btn" data-tab="images">Images</button>
+          </div>
+        </div>
+        <div class="search-results-body" id="search-results-body">
+          <div class="empty-state" id="search-empty">
+            <div class="empty-state-icon">🔍</div>
+            <div class="empty-state-title">Search anything</div>
+            <div class="empty-state-text">Type above and search the web with 360.</div>
+          </div>
+          <div class="search-loader" id="search-loader"><div class="spinner"></div>Searching…</div>
+          <div id="knowledge-panel-wrap"></div>
+          <div id="results-container"></div>
+          <div class="image-grid" id="image-results" style="display:none;"></div>
+          <div id="pagination-wrap" style="text-align:center;padding:20px 0;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI -->
+    <div class="page" id="page-ai">
+      <div class="ai-page" style="height:calc(100dvh - var(--header-h) - var(--nav-h));">
+        <div class="ai-messages" id="ai-messages">
+          <div class="empty-state" id="ai-empty">
+            <div class="empty-state-icon">🤖</div>
+            <div class="empty-state-title">360 AI</div>
+            <div class="empty-state-text">Ask me anything — powered by GPT-4o &amp; Claude.</div>
+          </div>
+        </div>
+        <div class="ai-input-bar">
+          <textarea class="ai-textarea" id="ai-input" placeholder="Ask AI anything..." rows="1" enterkeyhint="send"></textarea>
+          <button class="ai-send-btn" id="ai-send-btn">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEATHER -->
+    <div class="page" id="page-weather">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">Weather</div>
+      </div>
+      <div class="feature-page" id="weather-content">
+        <div class="feature-loader" id="weather-loader"><div class="spinner"></div>Getting your location…</div>
+      </div>
+    </div>
+
+    <!-- NEWS -->
+    <div class="page" id="page-news">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">News</div>
+      </div>
+      <div class="news-tabs" id="news-tabs">
+        <button class="news-tab active" data-cat="general">Top</button>
+        <button class="news-tab" data-cat="technology">Tech</button>
+        <button class="news-tab" data-cat="business">Business</button>
+        <button class="news-tab" data-cat="sports">Sports</button>
+        <button class="news-tab" data-cat="entertainment">Entertainment</button>
+        <button class="news-tab" data-cat="health">Health</button>
+        <button class="news-tab" data-cat="science">Science</button>
+      </div>
+      <div class="feature-page" id="news-content">
+        <div class="feature-loader" id="news-loader"><div class="spinner"></div>Loading news…</div>
+      </div>
+    </div>
+
+    <!-- STOCKS -->
+    <div class="page" id="page-stocks">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">Stocks</div>
+      </div>
+      <div class="feature-page">
+        <div class="stock-search-bar">
+          <input class="stock-search-input" id="stock-input" type="text" placeholder="Enter ticker (e.g. AAPL)" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+          <button class="stock-search-btn" id="stock-btn">Look Up</button>
+        </div>
+        <div id="stock-result"></div>
+        <div style="margin-top:8px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">Popular</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button onclick="lookupStock('AAPL')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">AAPL</button>
+            <button onclick="lookupStock('GOOGL')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">GOOGL</button>
+            <button onclick="lookupStock('MSFT')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">MSFT</button>
+            <button onclick="lookupStock('TSLA')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">TSLA</button>
+            <button onclick="lookupStock('NVDA')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">NVDA</button>
+            <button onclick="lookupStock('BTC-USD')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">BTC</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSLATOR -->
+    <div class="page" id="page-translator">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">Translate</div>
+      </div>
+      <div class="feature-page">
+        <div class="translator-wrap">
+          <div class="lang-row">
+            <select class="lang-select" id="lang-from">
+              <option value="English">Detect / English</option>
+              <option value="Spanish">Spanish</option>
+              <option value="French">French</option>
+              <option value="German">German</option>
+              <option value="Italian">Italian</option>
+              <option value="Portuguese">Portuguese</option>
+              <option value="Russian">Russian</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Korean">Korean</option>
+              <option value="Chinese">Chinese (Simplified)</option>
+              <option value="Arabic">Arabic</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Dutch">Dutch</option>
+              <option value="Polish">Polish</option>
+              <option value="Turkish">Turkish</option>
+              <option value="Ukrainian">Ukrainian</option>
+            </select>
+            <button class="swap-btn" id="swap-langs-btn">⇄</button>
+            <select class="lang-select" id="lang-to">
+              <option value="Spanish">Spanish</option>
+              <option value="English">English</option>
+              <option value="French">French</option>
+              <option value="German">German</option>
+              <option value="Italian">Italian</option>
+              <option value="Portuguese">Portuguese</option>
+              <option value="Russian">Russian</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Korean">Korean</option>
+              <option value="Chinese">Chinese (Simplified)</option>
+              <option value="Arabic">Arabic</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Dutch">Dutch</option>
+              <option value="Polish">Polish</option>
+              <option value="Turkish">Turkish</option>
+              <option value="Ukrainian">Ukrainian</option>
+            </select>
+          </div>
+          <textarea class="translate-input" id="translate-input" placeholder="Enter text to translate..." maxlength="5000"></textarea>
+          <div class="char-count"><span id="translate-char-count">0</span>/5000</div>
+          <button class="translate-btn" id="translate-btn">Translate</button>
+          <textarea class="translate-output" id="translate-output" readonly placeholder="Translation will appear here…"></textarea>
+          <button id="copy-translation-btn" style="display:none;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--a);background:transparent;color:var(--a);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Copy Translation</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="page" id="page-chat">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">360 Chat</div>
+        <div style="margin-left:auto;font-size:11px;color:var(--mut);" id="chat-room-label">General</div>
+      </div>
+      <div class="chat-page" style="height:calc(100dvh - var(--header-h) - var(--nav-h) - 56px);">
+        <div id="chat-auth-gate" class="chat-gate" style="display:none;">
+          <div class="chat-gate-icon">💬</div>
+          <div class="chat-gate-title">Sign in to chat</div>
+          <div class="chat-gate-sub">360 Chat syncs across all your devices. Sign in to join the conversation.</div>
+          <button class="chat-gate-btn" id="chat-signin-btn">Sign In</button>
+        </div>
+        <div class="chat-messages" id="chat-messages" style="display:none;"></div>
+        <div class="chat-input-bar" id="chat-input-bar" style="display:none;">
+          <textarea class="ai-textarea" id="chat-input" placeholder="Say something…" rows="1" enterkeyhint="send" maxlength="500"></textarea>
+          <button class="ai-send-btn" id="chat-send-btn">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- URL SHORTENER -->
+    <div class="page" id="page-shortener">
+      <div class="feature-header">
+        <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
+        <div class="feature-header-title">URL Shortener</div>
+      </div>
+      <div class="feature-page">
+        <div class="shortener-wrap">
+          <input class="shortener-input" id="shortener-input" type="url" placeholder="Paste a long URL here…" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <button class="shortener-btn" id="shortener-btn">Shorten URL</button>
+          <div id="shortener-result" style="display:none;"></div>
+        </div>
+        <div style="margin-top:20px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">Recent</div>
+          <div id="shortener-history"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAMES -->
+    <div class="page" id="page-games">
+      <div class="section-header"><div class="section-title">Games</div></div>
+      <div class="games-page">
+        <div class="games-grid" id="games-grid"></div>
+      </div>
+    </div>
+
+    <!-- MORE / SETTINGS -->
+    <div class="page" id="page-more">
+      <div class="section-header"><div class="section-title">Settings</div></div>
+      <div class="settings-page">
+        <div class="settings-group" id="profile-group">
+          <div class="settings-group-title">Account</div>
+          <div class="settings-link-row" id="profile-row" style="cursor:pointer;">
+            <span class="settings-link-icon">👤</span>
+            <div class="settings-row-left">
+              <div class="settings-row-label" id="profile-name-label">Sign in to 360</div>
+              <div class="settings-row-sub" id="profile-email-label">Sync your preferences across devices</div>
+            </div>
+            <span class="settings-link-chevron">›</span>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">Appearance</div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-label">Dark Mode</div>
+              <div class="settings-row-sub">Switch to a dark theme</div>
+            </div>
+            <button class="toggle-switch" id="dark-toggle" role="switch" aria-label="Dark mode"></button>
+          </div>
+          <div class="theme-swatch-row">
+            <div class="theme-swatch active" data-theme="ocean"><div class="swatch-circle" style="background:linear-gradient(135deg,#3b82f6,#06b6d4);"></div><span class="swatch-label">Ocean</span></div>
+            <div class="theme-swatch" data-theme="midnight"><div class="swatch-circle" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);"></div><span class="swatch-label">Midnight</span></div>
+            <div class="theme-swatch" data-theme="sunset"><div class="swatch-circle" style="background:linear-gradient(135deg,#f97316,#ef4444);"></div><span class="swatch-label">Sunset</span></div>
+            <div class="theme-swatch" data-theme="mint"><div class="swatch-circle" style="background:linear-gradient(135deg,#10b981,#34d399);"></div><span class="swatch-label">Mint</span></div>
+            <div class="theme-swatch" data-theme="neon"><div class="swatch-circle" style="background:linear-gradient(135deg,#a21caf,#ec4899);"></div><span class="swatch-label">Neon</span></div>
+            <div class="theme-swatch" data-theme="mono"><div class="swatch-circle" style="background:linear-gradient(135deg,#6b7280,#9ca3af);"></div><span class="swatch-label">Mono</span></div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">Preferences</div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-label">Temperature Unit</div>
+              <div class="settings-row-sub" id="temp-unit-sub">Currently Celsius (°C)</div>
+            </div>
+            <button class="toggle-switch" id="temp-toggle" role="switch" aria-label="Temperature unit"></button>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-left">
+              <div class="settings-row-label">Music</div>
+              <div class="settings-row-sub">Ambient background music</div>
+            </div>
+            <button class="toggle-switch" id="music-settings-toggle" role="switch" aria-label="Music"></button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">Legal &amp; About</div>
+          <a class="settings-link-row" href="https://beta.360-search.com/privacypolicy" target="_blank">
+            <span class="settings-link-icon">🔒</span>
+            <div class="settings-row-left"><div class="settings-row-label">Privacy Policy</div></div>
+            <span class="settings-link-chevron">›</span>
+          </a>
+          <a class="settings-link-row" href="https://beta.360-search.com/tos" target="_blank">
+            <span class="settings-link-icon">📜</span>
+            <div class="settings-row-left"><div class="settings-row-label">Terms of Service</div></div>
+            <span class="settings-link-chevron">›</span>
+          </a>
+          <div class="settings-link-row">
+            <span class="settings-link-icon">ℹ️</span>
+            <div class="settings-row-left">
+              <div class="settings-row-label">Version</div>
+              <div class="settings-row-sub">360 Android v3.0.0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav id="bottom-nav">
+    <button class="nav-tab active" data-page="home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></button>
+    <button class="nav-tab" data-page="search"><span class="nav-icon">🔍</span><span class="nav-label">Search</span></button>
+    <button class="nav-tab" data-page="ai"><span class="nav-icon">🤖</span><span class="nav-label">AI</span></button>
+    <button class="nav-tab" data-page="games"><span class="nav-icon">🎮</span><span class="nav-label">Games</span></button>
+    <button class="nav-tab" data-page="more"><span class="nav-icon">⚙️</span><span class="nav-label">More</span></button>
+  </nav>
+</div>
+
+<!-- AUTH SHEET -->
+<div id="auth-sheet">
+  <div id="auth-backdrop"></div>
+  <div id="auth-panel">
+    <div class="auth-panel-title">Sign in to 360</div>
+    <input class="auth-input" id="auth-email" type="email" placeholder="Email" autocomplete="email" />
+    <input class="auth-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password" />
+    <button class="auth-btn-primary" id="auth-login-btn">Log In</button>
+    <div class="oauth-row">
+      <button class="oauth-btn" id="github-login">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </button>
+      <button class="oauth-btn" id="google-login">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Google
+      </button>
+    </div>
+    <p class="auth-error" id="auth-error"></p>
+    <button class="auth-close-btn" id="auth-close-btn">Cancel</button>
+  </div>
+</div>
+
+<!-- IFRAME VIEWER -->
+<div id="iframe-viewer">
+  <div class="iframe-header">
+    <button class="iframe-close-btn" id="iframe-close-btn">✕</button>
+    <div class="iframe-title" id="iframe-title">Loading…</div>
+  </div>
+  <iframe class="iframe-viewer-frame" id="iframe-frame" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"></iframe>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  360 ANDROID v3.0.0 — SUPABASE INTEGRATED
+// ═══════════════════════════════════════════════════════
+
+const SB_URL   = "https://wiswfpfsjiowtrdyqpxy.supabase.co";
+const SB_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpc3dmcGZzamlvd3RyZHlxcHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzg4OTcsImV4cCI6MjA4MzkxNDg5N30.z_4FtM2c8UwgrRlafPYjolQuod4IoHQats95XHio1zM";
+const AI_URL       = SB_URL + "/functions/v1/ai-chatbot";
+const SEARCH_URL   = SB_URL + "/functions/v1/search";
+const STOCKS_URL   = SB_URL + "/functions/v1/stocks-proxy";
+const TRANSLATE_URL= SB_URL + "/functions/v1/dynamic-endpoint";
+const SHORTENER_URL= SB_URL + "/functions/v1/smooth-endpoint";
+const HDRS         = { "Content-Type": "application/json", "Authorization": "Bearer " + SB_KEY };
+
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+// ── UTILITIES ──────────────────────────────────────────
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function showToast(msg, dur) {
+  dur = dur || 3000;
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.getElementById("toast-container").appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
+
+// ── SPLASH ─────────────────────────────────────────────
+(async () => {
+  const splash = document.getElementById("splash");
+  const delay = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
+  await delay(80);
+  document.getElementById("s3").classList.add("splash-anim");
+  await delay(130); document.getElementById("s6").classList.add("splash-anim");
+  await delay(130); document.getElementById("s0").classList.add("splash-anim");
+  await delay(900);
+  splash.classList.add("fade");
+  splash.addEventListener("transitionend", function() { splash.remove(); }, { once: true });
+})();
+
+// ── THEME & DARK MODE ──────────────────────────────────
+(function() {
+  var saved = localStorage.getItem("theme") || "ocean";
+  document.body.classList.add("theme-" + saved);
+  document.querySelectorAll(".theme-swatch").forEach(function(s) {
+    s.classList.toggle("active", s.dataset.theme === saved);
+  });
+  var dark = localStorage.getItem("darkMode") === "true";
+  document.body.classList.toggle("dark", dark);
+  var dt = document.getElementById("dark-toggle");
+  if (dt) dt.classList.toggle("on", dark);
+})();
+
+document.getElementById("dark-toggle") && document.getElementById("dark-toggle").addEventListener("click", function() {
+  var isDark = document.body.classList.toggle("dark");
+  localStorage.setItem("darkMode", isDark);
+  this.classList.toggle("on", isDark);
+});
+
+document.querySelectorAll(".theme-swatch").forEach(function(s) {
+  s.addEventListener("click", function() {
+    document.body.className.split(" ").forEach(function(c) { if (c.startsWith("theme-")) document.body.classList.remove(c); });
+    document.body.classList.add("theme-" + this.dataset.theme);
+    localStorage.setItem("theme", this.dataset.theme);
+    document.querySelectorAll(".theme-swatch").forEach(function(x) { x.classList.remove("active"); });
+    this.classList.add("active");
+  });
+});
+
+// ── NAVIGATION ─────────────────────────────────────────
+var currentPage = "home";
+
+function navigateTo(pageId) {
+  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelectorAll(".nav-tab").forEach(function(t) { t.classList.remove("active"); });
+  var page = document.getElementById("page-" + pageId);
+  var tab  = document.querySelector(".nav-tab[data-page='" + pageId + "']");
+  if (page) page.classList.add("active");
+  if (tab)  tab.classList.add("active");
+  currentPage = pageId;
+  document.getElementById("page-content").scrollTo(0, 0);
+  if (pageId === "weather") loadWeatherPage();
+  if (pageId === "news")    loadNews("general");
+  if (pageId === "chat")    initChat();
+}
+
+document.querySelectorAll(".nav-tab").forEach(function(btn) {
+  btn.addEventListener("click", function() { navigateTo(this.dataset.page); });
+});
+document.querySelectorAll(".quick-tile[data-page]").forEach(function(tile) {
+  tile.addEventListener("click", function(e) { e.preventDefault(); navigateTo(this.dataset.page); });
+});
+document.getElementById("settingsHeaderBtn") && document.getElementById("settingsHeaderBtn").addEventListener("click", function() { navigateTo("more"); });
+
+// ── CLOCK ──────────────────────────────────────────────
+setInterval(function() {
+  var el = document.getElementById("clock");
+  if (el) el.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}, 1000);
+
+// ── WEATHER HOME CHIP ──────────────────────────────────
+var lastTempC = null;
+var tempUnit  = localStorage.getItem("tempUnit") || "C";
+
+function renderWeatherChip() {
+  var chip = document.getElementById("weatherChip");
+  if (!chip || lastTempC === null) return;
+  var t = tempUnit === "C" ? Math.round(lastTempC) + "°C" : Math.round(lastTempC * 9/5 + 32) + "°F";
+  chip.textContent = "🌤 " + t;
+}
+
+var lastCoords = null;
+(function() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    lastCoords = pos.coords;
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.coords.latitude + "&longitude=" + pos.coords.longitude + "&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5")
+      .then(function(r) { return r.json(); })
+      .then(function(d) { lastTempC = d.current_weather.temperature; window._weatherData = d; renderWeatherChip(); })
+      .catch(function() {});
+  }, function() {});
+})();
+
+var tempToggle = document.getElementById("temp-toggle");
+if (tempUnit === "F" && tempToggle) tempToggle.classList.add("on");
+tempToggle && tempToggle.addEventListener("click", function() {
+  tempUnit = tempUnit === "C" ? "F" : "C";
+  localStorage.setItem("tempUnit", tempUnit);
+  this.classList.toggle("on", tempUnit === "F");
+  document.getElementById("temp-unit-sub").textContent = tempUnit === "C" ? "Currently Celsius (°C)" : "Currently Fahrenheit (°F)";
+  renderWeatherChip();
+});
+
+// ── WEATHER PAGE ───────────────────────────────────────
+var WMO = {0:"☀️ Clear",1:"🌤 Mostly Clear",2:"⛅ Partly Cloudy",3:"☁️ Overcast",45:"🌫 Foggy",48:"🌫 Icy Fog",51:"🌦 Light Drizzle",53:"🌦 Drizzle",55:"🌧 Heavy Drizzle",61:"🌧 Light Rain",63:"🌧 Rain",65:"🌧 Heavy Rain",71:"🌨 Light Snow",73:"🌨 Snow",75:"❄️ Heavy Snow",80:"🌦 Rain Showers",81:"🌧 Heavy Showers",95:"⛈ Thunderstorm",96:"⛈ Hail Storm",99:"⛈ Heavy Hail"};
+var DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function loadWeatherPage() {
+  var content = document.getElementById("weather-content");
+  var loader  = document.getElementById("weather-loader");
+  if (!loader) return;
+  if (window._weatherData && window._weatherData.daily) { renderWeatherPage(window._weatherData); return; }
+  loader.style.display = "block";
+  if (!navigator.geolocation) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location required</div></div>';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.coords.latitude + "&longitude=" + pos.coords.longitude + "&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5")
+      .then(function(r) { return r.json(); })
+      .then(function(d) { window._weatherData = d; lastTempC = d.current_weather.temperature; renderWeatherChip(); renderWeatherPage(d); })
+      .catch(function(e) { content.innerHTML = '<div class="empty-state"><div class="empty-state-title">⚠️ ' + escHtml(e.message) + '</div></div>'; });
+  }, function() {
+    content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location denied</div><div class="empty-state-text">Enable location in phone settings.</div></div>';
+  });
+}
+
+function renderWeatherPage(d) {
+  var content = document.getElementById("weather-content");
+  var cw = d.current_weather;
+  var daily = d.daily;
+  function fmt(t) { return tempUnit === "C" ? Math.round(t) + "°C" : Math.round(t * 9/5 + 32) + "°F"; }
+  function wmo(code) { return WMO[code] || "🌡 Unknown"; }
+  var rows = daily.time.slice(0,5).map(function(dateStr, i) {
+    var date = new Date(dateStr);
+    var day  = i === 0 ? "Today" : DAYS[date.getDay()];
+    var icon = (wmo(daily.weathercode[i]).split(" ")[0]) || "🌡";
+    return '<div class="forecast-row"><span class="forecast-day">' + day + '</span><span class="forecast-icon">' + icon + '</span><span class="forecast-range">' + fmt(daily.temperature_2m_min[i]) + ' – ' + fmt(daily.temperature_2m_max[i]) + '</span></div>';
+  }).join("");
+  content.innerHTML = '<div class="weather-hero"><div class="weather-temp">' + fmt(cw.temperature) + '</div><div class="weather-desc">' + wmo(cw.weathercode) + '</div><div class="weather-loc">📍 Your Location</div></div><div class="weather-grid"><div class="weather-card"><div class="weather-card-label">Wind</div><div class="weather-card-value">' + Math.round(cw.windspeed) + ' km/h</div></div><div class="weather-card"><div class="weather-card-label">Precipitation</div><div class="weather-card-value">' + (daily.precipitation_probability_max ? daily.precipitation_probability_max[0] : '--') + '%</div></div></div><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">5-Day Forecast</div>' + rows;
+}
+
+// ── NEWS ───────────────────────────────────────────────
+var newsLoaded = {};
+document.querySelectorAll(".news-tab").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".news-tab").forEach(function(b) { b.classList.remove("active"); });
+    this.classList.add("active");
+    newsLoaded = {};
+    loadNews(this.dataset.cat);
+  });
+});
+
+function loadNews(cat) {
+  if (newsLoaded[cat]) return;
+  var content = document.getElementById("news-content");
+  content.innerHTML = '<div class="feature-loader"><div class="spinner"></div>Loading news…</div>';
+  var feeds = {
+    general:"https://feeds.bbci.co.uk/news/rss.xml",
+    technology:"https://feeds.bbci.co.uk/news/technology/rss.xml",
+    business:"https://feeds.bbci.co.uk/news/business/rss.xml",
+    sports:"https://feeds.bbci.co.uk/news/sport/rss.xml",
+    entertainment:"https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+    health:"https://feeds.bbci.co.uk/news/health/rss.xml",
+    science:"https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
+  };
+  var feed = feeds[cat] || feeds.general;
+  fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(feed) + "&count=25")
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.items || !d.items.length) throw new Error("No articles");
+      var articles = d.items.map(function(item) {
+        return { title: item.title, description: (item.description || "").replace(/<[^>]*>/g,"").slice(0,200), url: item.link, source: { name: d.feed.title || "BBC News" }, publishedAt: item.pubDate };
+      });
+      content.innerHTML = articles.map(function(a) {
+        return '<div class="news-card" onclick="if(window.Android){Android.openUrl(\'' + escHtml(a.url) + '\')}else{window.open(\'' + escHtml(a.url) + '\',\'_blank\')}"><div class="news-card-source">' + escHtml(a.source.name) + '</div><div class="news-card-title">' + escHtml(a.title) + '</div>' + (a.description ? '<div class="news-card-desc">' + escHtml(a.description) + '</div>' : '') + '<div class="news-card-time">' + (a.publishedAt ? new Date(a.publishedAt).toLocaleString() : "") + '</div></div>';
+      }).join("");
+      newsLoaded[cat] = true;
+    })
+    .catch(function() {
+      content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📰</div><div class="empty-state-title">News unavailable</div><div class="empty-state-text">Check your connection and try again.</div></div>';
+    });
+}
+
+// ── STOCKS (via stocks-proxy edge function) ─────────────
+document.getElementById("stock-btn") && document.getElementById("stock-btn").addEventListener("click", function() {
+  var ticker = document.getElementById("stock-input").value.trim().toUpperCase();
+  if (ticker) lookupStock(ticker);
+});
+document.getElementById("stock-input") && document.getElementById("stock-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") { e.preventDefault(); var t = this.value.trim().toUpperCase(); if(t) lookupStock(t); }
+});
+
+function lookupStock(ticker) {
+  var result = document.getElementById("stock-result");
+  result.innerHTML = '<div class="feature-loader"><div class="spinner"></div></div>';
+  fetch(STOCKS_URL + "?ticker=" + encodeURIComponent(ticker))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var q = data["Global Quote"];
+      if (!q || !q["05. price"]) {
+        // Fallback to Yahoo via allorigins
+        return fetch("https://api.allorigins.win/get?url=" + encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/" + ticker + "?interval=1d&range=1d"))
+          .then(function(r) { return r.json(); })
+          .then(function(outer) {
+            var d2 = JSON.parse(outer.contents);
+            var meta = d2.chart.result[0].meta;
+            renderStock(ticker, meta.regularMarketPrice, meta.previousClose || meta.chartPreviousClose, meta.longName || meta.shortName || ticker, meta.currency, meta.exchangeName);
+          });
+      }
+      var price  = parseFloat(q["05. price"]);
+      var prev   = parseFloat(q["08. previous close"]);
+      var name   = ticker;
+      renderStock(ticker, price, prev, name, "USD", q["07. latest trading day"]);
+    })
+    .catch(function() {
+      result.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📈</div><div class="empty-state-title">Couldn\'t find ' + escHtml(ticker) + '</div></div>';
+    });
+}
+
+function renderStock(ticker, price, prev, name, currency, extra) {
+  var result = document.getElementById("stock-result");
+  var change = price - prev;
+  var pct    = ((change / prev) * 100).toFixed(2);
+  var up     = change >= 0;
+  result.innerHTML = '<div class="stock-hero"><div class="stock-ticker">' + escHtml(ticker) + '</div><div class="stock-name">' + escHtml(name) + '</div><div class="stock-price">$' + price.toFixed(2) + '</div><div class="stock-change ' + (up?"up":"down") + '">' + (up?"+":"") + change.toFixed(2) + ' (' + (up?"+":"") + pct + '%)</div></div><div class="weather-grid" style="margin-top:10px;"><div class="weather-card"><div class="weather-card-label">Prev Close</div><div class="weather-card-value">$' + prev.toFixed(2) + '</div></div><div class="weather-card"><div class="weather-card-label">Currency</div><div class="weather-card-value">' + escHtml(currency) + '</div></div></div>';
+}
+
+// ── TRANSLATOR (via dynamic-endpoint edge function) ─────
+var transInput   = document.getElementById("translate-input");
+var transOutput  = document.getElementById("translate-output");
+var transBtn     = document.getElementById("translate-btn");
+var copyTransBtn = document.getElementById("copy-translation-btn");
+var charCount    = document.getElementById("translate-char-count");
+
+transInput && transInput.addEventListener("input", function() { charCount.textContent = transInput.value.length; });
+
+document.getElementById("swap-langs-btn") && document.getElementById("swap-langs-btn").addEventListener("click", function() {
+  var from = document.getElementById("lang-from");
+  var to   = document.getElementById("lang-to");
+  var fv = from.value, tv = to.value;
+  from.value = tv; to.value = fv;
+  if (transOutput.value) { transInput.value = transOutput.value; transOutput.value = ""; charCount.textContent = transInput.value.length; }
+});
+
+transBtn && transBtn.addEventListener("click", function() {
+  var text = transInput.value.trim();
+  if (!text) return;
+  var from = document.getElementById("lang-from").value;
+  var to   = document.getElementById("lang-to").value;
+  transBtn.textContent = "Translating…"; transBtn.disabled = true;
+  fetch(TRANSLATE_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ text: text, from: from, to: to })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.translated) {
+        transOutput.value = d.translated;
+        copyTransBtn.style.display = "block";
+      } else {
+        transOutput.value = "Translation failed: " + (d.error || "Unknown error");
+      }
+    })
+    .catch(function(e) { transOutput.value = "Translation failed: " + e.message; })
+    .finally(function() { transBtn.textContent = "Translate"; transBtn.disabled = false; });
+});
+
+copyTransBtn && copyTransBtn.addEventListener("click", function() {
+  if (navigator.clipboard) { navigator.clipboard.writeText(transOutput.value).then(function() { showToast("Copied!"); }); }
+  else { transOutput.select(); document.execCommand("copy"); showToast("Copied!"); }
+});
+
+// ── URL SHORTENER (via smooth-endpoint edge function) ───
+var shortHistory = JSON.parse(localStorage.getItem("short_history") || "[]");
+
+function renderShortHistory() {
+  var el = document.getElementById("shortener-history");
+  if (!el) return;
+  el.innerHTML = shortHistory.slice(-5).reverse().map(function(item) {
+    return '<div class="short-result" style="margin-bottom:8px;"><div class="short-url">' + escHtml(item.short) + '</div><button class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + escHtml(item.short) + '\').then(function(){showToast(\'Copied!\')})">Copy</button></div>';
+  }).join("") || '<div style="color:var(--mut);font-size:13px;">No history yet</div>';
+}
+
+document.getElementById("shortener-btn") && document.getElementById("shortener-btn").addEventListener("click", function() {
+  var url = document.getElementById("shortener-input").value.trim();
+  if (!url) { showToast("Enter a URL first"); return; }
+  var btn = document.getElementById("shortener-btn");
+  btn.textContent = "Shortening…"; btn.disabled = true;
+  fetch(SHORTENER_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ url: url })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.shortUrl) throw new Error(d.error || "No short URL returned");
+      var result = document.getElementById("shortener-result");
+      result.style.display = "block";
+      result.innerHTML = '<div class="short-result"><div class="short-url">' + escHtml(d.shortUrl) + '</div><button class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + escHtml(d.shortUrl) + '\').then(function(){showToast(\'Copied!\')})">Copy</button></div>';
+      shortHistory.push({ original: url, short: d.shortUrl });
+      localStorage.setItem("short_history", JSON.stringify(shortHistory.slice(-20)));
+      renderShortHistory();
+    })
+    .catch(function(e) { showToast("Failed: " + e.message); })
+    .finally(function() { btn.textContent = "Shorten URL"; btn.disabled = false; });
+});
+renderShortHistory();
+
+// ── CHAT (Supabase messages table — synced with web app) ─
+var chatChannel  = null;
+var chatInited   = false;
+var chatUser     = null;   // set when auth is known
+
+function initChat() {
+  sb.auth.getSession().then(function(res) {
+    var session = res.data && res.data.session;
+    if (!session) {
+      document.getElementById("chat-auth-gate").style.display  = "flex";
+      document.getElementById("chat-messages").style.display   = "none";
+      document.getElementById("chat-input-bar").style.display  = "none";
+      return;
+    }
+    chatUser = session.user;
+    document.getElementById("chat-auth-gate").style.display  = "none";
+    document.getElementById("chat-messages").style.display   = "flex";
+    document.getElementById("chat-input-bar").style.display  = "flex";
+    if (!chatInited) {
+      chatInited = true;
+      loadChatHistory();
+      subscribeChatRealtime();
+    }
+  });
+}
+
+function loadChatHistory() {
+  sb.from("messages")
+    .select("id,username,text,role,created_at,user_id")
+    .is("channel_id", null)
+    .is("server_id", null)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(50)
+    .then(function(res) {
+      if (res.data) {
+        res.data.forEach(function(msg) {
+          appendChatBubble(msg.username || "User", msg.text || "", chatUser && msg.user_id === chatUser.id);
+        });
+      }
+    });
+}
+
+function subscribeChatRealtime() {
+  chatChannel = sb.channel("chat-android-public")
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: "channel_id=is.null"
+    }, function(payload) {
+      var msg = payload.new;
+      if (msg && msg.text && !msg.deleted_at && !msg.server_id) {
+        appendChatBubble(msg.username || "User", msg.text, chatUser && msg.user_id === chatUser.id);
+      }
+    })
+    .subscribe();
+}
+
+function appendChatBubble(name, text, isMine) {
+  var msgs = document.getElementById("chat-messages");
+  var wrap = document.createElement("div");
+  wrap.className = "chat-bubble-wrap" + (isMine ? " mine" : "");
+  wrap.innerHTML = '<div class="chat-avatar">' + escHtml((name[0] || "?").toUpperCase()) + '</div><div class="chat-bubble ' + (isMine?"mine":"them") + '">' + (!isMine ? '<div style="font-size:11px;font-weight:700;color:var(--a);margin-bottom:3px;">' + escHtml(name) + '</div>' : '') + escHtml(text) + '</div>';
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+document.getElementById("chat-signin-btn") && document.getElementById("chat-signin-btn").addEventListener("click", openAuth);
+document.getElementById("chat-send-btn") && document.getElementById("chat-send-btn").addEventListener("click", sendChatMessage);
+document.getElementById("chat-input") && document.getElementById("chat-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+});
+
+function sendChatMessage() {
+  var input = document.getElementById("chat-input");
+  var text  = input.value.trim();
+  if (!text || !chatUser) return;
+  input.value = ""; input.style.height = "auto";
+  sb.from("profiles").select("username").eq("id", chatUser.id).maybeSingle()
+    .then(function(res) {
+      var username = (res.data && res.data.username) || chatUser.user_metadata && chatUser.user_metadata.username || chatUser.email.split("@")[0];
+      return sb.from("messages").insert({ user_id: chatUser.id, username: username, text: text, channel_id: null, server_id: null });
+    })
+    .then(function(res) {
+      if (res.error) showToast("Send failed: " + res.error.message);
+    })
+    .catch(function(e) { showToast("Send failed: " + e.message); });
+}
+
+// ── MUSIC ──────────────────────────────────────────────
+var music = document.getElementById("bgMusic");
+var musicEnabled = localStorage.getItem("music") === "true";
+
+function syncMusic() {
+  var mb = document.getElementById("musicToggle");
+  var ms = document.getElementById("music-settings-toggle");
+  if (mb) mb.textContent = musicEnabled ? "On" : "Off";
+  if (ms) ms.classList.toggle("on", musicEnabled);
+  document.getElementById("musicStrip").style.display = "flex";
+  if (musicEnabled && music) music.play().catch(function() {});
+  else if (music) music.pause();
+}
+
+document.getElementById("musicToggle") && document.getElementById("musicToggle").addEventListener("click", function() { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
+document.getElementById("music-settings-toggle") && document.getElementById("music-settings-toggle").addEventListener("click", function() { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
+syncMusic();
+
+// ── AUTH ───────────────────────────────────────────────
+var authSheet = document.getElementById("auth-sheet");
+function openAuth()  { if (authSheet) authSheet.classList.add("open"); }
+function closeAuth() { if (authSheet) authSheet.classList.remove("open"); }
+
+document.getElementById("signInHeaderBtn") && document.getElementById("signInHeaderBtn").addEventListener("click", openAuth);
+document.getElementById("auth-backdrop")   && document.getElementById("auth-backdrop").addEventListener("click", closeAuth);
+document.getElementById("auth-close-btn")  && document.getElementById("auth-close-btn").addEventListener("click", closeAuth);
+
+document.getElementById("profile-row") && document.getElementById("profile-row").addEventListener("click", function() {
+  sb.auth.getSession().then(function(res) {
+    if (res.data && res.data.session) {
+      sb.auth.signOut().then(function() {
+        showToast("Signed out");
+        updateProfileUI(null);
+        chatUser = null; chatInited = false; chatChannel = null;
+        document.getElementById("chat-messages").innerHTML = "";
+      });
+    } else {
+      openAuth();
+    }
+  });
+});
+
+document.getElementById("auth-login-btn") && document.getElementById("auth-login-btn").addEventListener("click", function() {
+  var email = document.getElementById("auth-email").value;
+  var pass  = document.getElementById("auth-password").value;
+  var errEl = document.getElementById("auth-error");
+  sb.auth.signInWithPassword({ email: email, password: pass })
+    .then(function(res) {
+      if (res.error) { errEl.textContent = res.error.message; }
+      else { closeAuth(); showToast("Signed in!"); if (currentPage === "chat") initChat(); }
+    });
+});
+
+document.getElementById("github-login") && document.getElementById("github-login").addEventListener("click", function() { sb.auth.signInWithOAuth({ provider: "github" }); });
+document.getElementById("google-login") && document.getElementById("google-login").addEventListener("click", function() { sb.auth.signInWithOAuth({ provider: "google" }); });
+
+function updateProfileUI(user) {
+  var nameEl  = document.getElementById("profile-name-label");
+  var emailEl = document.getElementById("profile-email-label");
+  var btnEl   = document.getElementById("signInHeaderBtn");
+  if (user) {
+    var uname = (user.user_metadata && (user.user_metadata.username || user.user_metadata.full_name)) || (user.email && user.email.split("@")[0]) || "User";
+    if (nameEl) nameEl.textContent = "@" + uname;
+    if (emailEl) emailEl.textContent = user.email || "";
+    if (btnEl) { btnEl.textContent = uname[0].toUpperCase(); btnEl.style.background = "linear-gradient(135deg, var(--a), var(--a2))"; btnEl.style.color = "white"; }
+  } else {
+    if (nameEl) nameEl.textContent = "Sign in to 360";
+    if (emailEl) emailEl.textContent = "Sync your preferences across devices";
+    if (btnEl) { btnEl.textContent = "👤"; btnEl.style.removeProperty("background"); btnEl.style.removeProperty("color"); }
+  }
+}
+sb.auth.getSession().then(function(res) { updateProfileUI(res.data && res.data.session && res.data.session.user || null); });
+sb.auth.onAuthStateChange(function(event, session) {
+  updateProfileUI(session && session.user || null);
+  if (session && session.user && currentPage === "chat") initChat();
+});
+
+// ── SEARCH ─────────────────────────────────────────────
+var searchTab = "all";
+
+document.getElementById("home-search-form") && document.getElementById("home-search-form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  var q = document.getElementById("home-search-input").value.trim();
+  if (!q) return;
+  navigateTo("search");
+  document.getElementById("search-page-input").value = q;
+  runSearch(q, "all", 1);
+});
+
+document.getElementById("search-page-form") && document.getElementById("search-page-form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  var q = document.getElementById("search-page-input").value.trim();
+  if (q) runSearch(q, searchTab, 1);
+});
+
+document.querySelectorAll(".search-tab-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".search-tab-btn").forEach(function(b) { b.classList.remove("active"); });
+    this.classList.add("active");
+    searchTab = this.dataset.tab;
+    var q = document.getElementById("search-page-input").value.trim();
+    if (q) runSearch(q, searchTab, 1);
+  });
+});
+
+function runSearch(q, tab, page) {
+  var loader  = document.getElementById("search-loader");
+  var empty   = document.getElementById("search-empty");
+  var resWrap = document.getElementById("results-container");
+  var imgGrid = document.getElementById("image-results");
+  var kpWrap  = document.getElementById("knowledge-panel-wrap");
+  var pagWrap = document.getElementById("pagination-wrap");
+
+  empty.style.display = "none";
+  loader.classList.add("visible");
+  resWrap.innerHTML = imgGrid.innerHTML = kpWrap.innerHTML = pagWrap.innerHTML = "";
+  imgGrid.style.display = "none";
+
+  fetch(SEARCH_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ q: q, tab: tab, page: page, safe: "moderate" })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      loader.classList.remove("visible");
+      if (data.kp) {
+        kpWrap.innerHTML = '<div class="knowledge-panel"><div class="kp-title">' + escHtml(data.kp.title) + '</div>' + (data.kp.description ? '<div class="kp-desc">' + escHtml(data.kp.description) + '</div>' : "") + "</div>";
+      }
+      if (tab === "images" && data.images && data.images.length) {
+        imgGrid.style.display = "grid";
+        imgGrid.innerHTML = data.images.map(function(img) {
+          return '<div class="image-grid-item" onclick="openIframe(\'' + escHtml(img.url || img.contextLink || "#") + '\',\'Image\')"><img src="' + escHtml(img.thumbnail || img.src) + '" alt="' + escHtml(img.title) + '" loading="lazy" /></div>';
+        }).join("");
+      } else if (data.web && data.web.length) {
+        resWrap.innerHTML = data.web.map(function(r) {
+          var domain = (r.url || "").replace(/^https?:\/\//,"").split("/")[0];
+          return '<div class="result-card" onclick="window.open(\'' + escHtml(r.url) + '\',\'_blank\')"><div class="result-card-url">' + escHtml(domain) + '</div><div class="result-card-title">' + escHtml(r.title) + '</div><div class="result-card-snippet">' + escHtml(r.snippet) + '</div></div>';
+        }).join("");
+        if (data.totalPages > 1) {
+          var btns = [];
+          if (page > 1) btns.push('<button onclick="runSearch(\'' + escHtml(q) + '\',\'' + tab + '\',' + (page-1) + ')" style="padding:10px 22px;border-radius:99px;border:1px solid var(--br);background:var(--surface);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit;">← Prev</button>');
+          if (page < data.totalPages) btns.push('<button onclick="runSearch(\'' + escHtml(q) + '\',\'' + tab + '\',' + (page+1) + ')" style="padding:10px 22px;border-radius:99px;border:none;background:var(--a);color:white;font-size:14px;cursor:pointer;font-family:inherit;">Next →</button>');
+          pagWrap.innerHTML = '<div style="display:flex;gap:10px;justify-content:center;">' + btns.join("") + '</div>';
+        }
+      } else {
+        resWrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No results</div><div class="empty-state-text">Try different keywords.</div></div>';
+      }
+    })
+    .catch(function(err) {
+      loader.classList.remove("visible");
+      resWrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Search failed</div><div class="empty-state-text">' + escHtml(err.message) + '</div></div>';
+    });
+}
+
+// ── AI CHAT (via ai-chatbot with correct {message,memory} format) ─
+var aiHistory = [];
+var aiMessages = document.getElementById("ai-messages");
+var aiInput    = document.getElementById("ai-input");
+
+function appendAiBubble(role, text) {
+  var empty = document.getElementById("ai-empty");
+  if (empty) empty.remove();
+  var div = document.createElement("div");
+  div.className = "ai-bubble " + role;
+  if (role === "assistant") {
+    div.innerHTML = typeof marked !== "undefined" ? marked.parse(text) : text.replace(/\n/g,"<br>");
+  } else {
+    div.textContent = text;
+  }
+  aiMessages.appendChild(div);
+  aiMessages.scrollTop = aiMessages.scrollHeight;
+  return div;
+}
+
+function sendAiMessage() {
+  var text = aiInput.value.trim();
+  if (!text) return;
+  aiInput.value = ""; aiInput.style.height = "auto";
+  appendAiBubble("user", text);
+  // Build memory (history without the message we're about to send)
+  var memory = aiHistory.slice();
+  aiHistory.push({ role: "user", content: text });
+  var thinking = appendAiBubble("assistant", "…");
+  fetch(AI_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ message: text, memory: memory })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var reply = data.reply || data.content || data.message || "Sorry, no response.";
+      thinking.innerHTML = typeof marked !== "undefined" ? marked.parse(reply) : reply.replace(/\n/g,"<br>");
+      aiHistory.push({ role: "assistant", content: reply });
+    })
+    .catch(function(e) {
+      thinking.textContent = "Network error: " + e.message;
+    });
+}
+
+document.getElementById("ai-send-btn") && document.getElementById("ai-send-btn").addEventListener("click", sendAiMessage);
+aiInput && aiInput.addEventListener("keydown", function(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } });
+aiInput && aiInput.addEventListener("input", function() { this.style.height = "auto"; this.style.height = Math.min(this.scrollHeight, 120) + "px"; });
+
+// ── GAMES (360's own games + classics) ─────────────────
+var GAMES = [
+  { name: "360Fish",          icon: "🐟", tag: "360 Original", url: "https://beta.360-search.com/games/360Fish.html" },
+  { name: "Space Glider",     icon: "🚀", tag: "360 Original", url: "https://beta.360-search.com/games/spaceGlider.html" },
+  { name: "Balloon Blitz TD", icon: "🎈", tag: "360 Original", url: "https://beta.360-search.com/games/BlitzTowerDefense.html" },
+  { name: "Penguin Knockout", icon: "🐧", tag: "360 Original", url: "https://beta.360-search.com/games/PenguinKnockout.html" },
+  { name: "NYC Dream",        icon: "🌆", tag: "360 Original", url: "https://beta.360-search.com/games/nyc_dream.html" },
+  { name: "Minesweeper",      icon: "💣", tag: "360 Original", url: "https://beta.360-search.com/games/minesweeper.html" },
+  { name: "Starfall RNG",     icon: "⭐", tag: "360 Original", url: "https://beta.360-search.com/games/starfallrng.html" },
+  { name: "Angel RNG",        icon: "😇", tag: "360 Original", url: "https://beta.360-search.com/games/angelrng.html" },
+  { name: "2048",             icon: "🔢", tag: "Puzzle",       url: "https://play2048.co/" },
+  { name: "Chess",            icon: "♟️",  tag: "Strategy",     url: "https://www.chess.com/play/computer" },
+  { name: "Wordle",           icon: "📝", tag: "Word",         url: "https://www.nytimes.com/games/wordle/index.html" },
+  { name: "Tetris",           icon: "🧱", tag: "Arcade",       url: "https://jstris.jezevec10.com/" },
+];
+(function() {
+  var grid = document.getElementById("games-grid");
+  if (!grid) return;
+  grid.innerHTML = GAMES.map(function(g) {
+    return '<div class="game-card" onclick="openIframe(\'' + escHtml(g.url) + '\',\'' + escHtml(g.name) + '\')"><span class="game-card-icon">' + g.icon + '</span><span class="game-card-name">' + escHtml(g.name) + '</span><span class="game-card-tag">' + escHtml(g.tag) + '</span></div>';
+  }).join("");
+})();
+
+// ── IFRAME VIEWER ──────────────────────────────────────
+var iframeViewer = document.getElementById("iframe-viewer");
+var iframeFrame  = document.getElementById("iframe-frame");
+var iframeTitle  = document.getElementById("iframe-title");
+
+function openIframe(url, title) {
+  iframeTitle.textContent = title || "Loading…";
+  iframeFrame.src = url;
+  iframeViewer.classList.add("open");
+}
+function closeIframe() {
+  iframeViewer.classList.remove("open");
+  setTimeout(function() { iframeFrame.src = ""; }, 350);
+}
+document.getElementById("iframe-close-btn") && document.getElementById("iframe-close-btn").addEventListener("click", closeIframe);
+
+// ── BACK BUTTON (Android hardware) ─────────────────────
+document.addEventListener("backbutton", function(e) {
+  e.preventDefault();
+  if (iframeViewer.classList.contains("open")) { closeIframe(); return; }
+  if (authSheet && authSheet.classList.contains("open")) { closeAuth(); return; }
+  var featurePages = ["weather","news","stocks","translator","chat","shortener"];
+  if (featurePages.indexOf(currentPage) > -1 || currentPage !== "home") { navigateTo("home"); return; }
+  if (typeof navigator.app !== "undefined") navigator.app.exitApp();
+}, false);
+</script>
+</body>
+</html>
