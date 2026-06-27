@@ -13,7 +13,6 @@
   <script src="assets/js/supabase.min.js"></script>
   <script src="assets/js/marked.min.js"></script>
   <style>
-    /* ── BUILT-IN PAGE STYLES ── */
     .feature-page { padding: 16px; }
 
     /* Weather */
@@ -85,18 +84,16 @@
     .chat-bubble.them { background: var(--card); color: var(--txt); border: 1px solid var(--br); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
     .chat-bubble.mine { background: var(--a); color: white; border-bottom-right-radius: 4px; }
     .chat-input-bar { padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--br); display: flex; gap: 10px; align-items: flex-end; }
-    .chat-name-setup { padding: 40px 24px; text-align: center; }
-    .chat-name-title { font-size: 22px; font-weight: 700; color: var(--txt); margin-bottom: 8px; }
-    .chat-name-sub { font-size: 14px; color: var(--mut); margin-bottom: 24px; }
-    .chat-name-input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--br); border-radius: var(--radius-sm); background: var(--surface2); color: var(--txt); font-size: 15px; font-family: inherit; outline: none; box-sizing: border-box; margin-bottom: 12px; }
-    .chat-name-btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .chat-gate { padding: 40px 24px; text-align: center; }
+    .chat-gate-icon { font-size: 48px; margin-bottom: 16px; }
+    .chat-gate-title { font-size: 22px; font-weight: 700; color: var(--txt); margin-bottom: 8px; }
+    .chat-gate-sub { font-size: 14px; color: var(--mut); margin-bottom: 24px; line-height: 1.6; }
+    .chat-gate-btn { padding: 14px 32px; border-radius: var(--radius-sm); border: none; background: linear-gradient(120deg, var(--a), var(--a2)); color: white; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
-    /* Page headers for feature pages */
+    /* Feature headers */
     .feature-header { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--br); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
     .feature-back-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--surface2); color: var(--txt); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .feature-header-title { font-size: 18px; font-weight: 700; color: var(--txt); }
-
-    /* Loading state */
     .feature-loader { text-align: center; padding: 60px 20px; color: var(--mut); }
     .feature-loader .spinner { width: 32px; height: 32px; border: 3px solid var(--br); border-top-color: var(--a); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
   </style>
@@ -110,7 +107,6 @@
 </div>
 
 <div id="app-shell">
-
   <header id="app-header">
     <div class="header-logo">360</div>
     <div class="header-actions">
@@ -123,7 +119,7 @@
 
   <main id="page-content">
 
-    <!-- ── HOME ── -->
+    <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="home-page">
         <div class="home-top-row">
@@ -162,7 +158,7 @@
       </div>
     </div>
 
-    <!-- ── SEARCH ── -->
+    <!-- SEARCH -->
     <div class="page" id="page-search">
       <div class="search-page">
         <div class="search-page-header">
@@ -192,14 +188,14 @@
       </div>
     </div>
 
-    <!-- ── AI ── -->
+    <!-- AI -->
     <div class="page" id="page-ai">
       <div class="ai-page" style="height:calc(100dvh - var(--header-h) - var(--nav-h));">
         <div class="ai-messages" id="ai-messages">
           <div class="empty-state" id="ai-empty">
             <div class="empty-state-icon">🤖</div>
             <div class="empty-state-title">360 AI</div>
-            <div class="empty-state-text">Ask me anything!</div>
+            <div class="empty-state-text">Ask me anything — powered by GPT-4o &amp; Claude.</div>
           </div>
         </div>
         <div class="ai-input-bar">
@@ -209,21 +205,18 @@
       </div>
     </div>
 
-    <!-- ── WEATHER ── -->
+    <!-- WEATHER -->
     <div class="page" id="page-weather">
       <div class="feature-header">
         <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
         <div class="feature-header-title">Weather</div>
       </div>
       <div class="feature-page" id="weather-content">
-        <div class="feature-loader" id="weather-loader">
-          <div class="spinner"></div>
-          Getting your location…
-        </div>
+        <div class="feature-loader" id="weather-loader"><div class="spinner"></div>Getting your location…</div>
       </div>
     </div>
 
-    <!-- ── NEWS ── -->
+    <!-- NEWS -->
     <div class="page" id="page-news">
       <div class="feature-header">
         <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
@@ -243,7 +236,7 @@
       </div>
     </div>
 
-    <!-- ── STOCKS ── -->
+    <!-- STOCKS -->
     <div class="page" id="page-stocks">
       <div class="feature-header">
         <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
@@ -256,22 +249,20 @@
         </div>
         <div id="stock-result"></div>
         <div style="margin-top:8px;">
-          <div class="settings-group-title" style="padding:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);">Popular</div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">Popular</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            <button onclick="lookupStock('AAPL')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">AAPL</button>
-            <button onclick="lookupStock('GOOGL')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">GOOGL</button>
-            <button onclick="lookupStock('MSFT')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">MSFT</button>
-            <button onclick="lookupStock('TSLA')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">TSLA</button>
-            <button onclick="lookupStock('AMZN')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">AMZN</button>
-            <button onclick="lookupStock('META')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">META</button>
-            <button onclick="lookupStock('NVDA')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">NVDA</button>
-            <button onclick="lookupStock('BTC-USD')" style="padding:8px 16px;border-radius:99px;border:1px solid var(--br);background:var(--card);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">BTC</button>
+            <button onclick="lookupStock('AAPL')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">AAPL</button>
+            <button onclick="lookupStock('GOOGL')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">GOOGL</button>
+            <button onclick="lookupStock('MSFT')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">MSFT</button>
+            <button onclick="lookupStock('TSLA')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">TSLA</button>
+            <button onclick="lookupStock('NVDA')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">NVDA</button>
+            <button onclick="lookupStock('BTC-USD')" class="stock-search-btn" style="padding:8px 16px;border-radius:99px;background:var(--card);color:var(--txt);border:1px solid var(--br);">BTC</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── TRANSLATOR ── -->
+    <!-- TRANSLATOR -->
     <div class="page" id="page-translator">
       <div class="feature-header">
         <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
@@ -281,56 +272,41 @@
         <div class="translator-wrap">
           <div class="lang-row">
             <select class="lang-select" id="lang-from">
-              <option value="auto">Detect Language</option>
-              <option value="en">English</option>
-              <option value="es">Spanish</option>
-              <option value="fr">French</option>
-              <option value="de">German</option>
-              <option value="it">Italian</option>
-              <option value="pt">Portuguese</option>
-              <option value="ru">Russian</option>
-              <option value="ja">Japanese</option>
-              <option value="ko">Korean</option>
-              <option value="zh">Chinese (Simplified)</option>
-              <option value="ar">Arabic</option>
-              <option value="hi">Hindi</option>
-              <option value="nl">Dutch</option>
-              <option value="pl">Polish</option>
-              <option value="tr">Turkish</option>
-              <option value="sv">Swedish</option>
-              <option value="da">Danish</option>
-              <option value="fi">Finnish</option>
-              <option value="no">Norwegian</option>
-              <option value="he">Hebrew</option>
-              <option value="th">Thai</option>
-              <option value="vi">Vietnamese</option>
-              <option value="uk">Ukrainian</option>
+              <option value="English">Detect / English</option>
+              <option value="Spanish">Spanish</option>
+              <option value="French">French</option>
+              <option value="German">German</option>
+              <option value="Italian">Italian</option>
+              <option value="Portuguese">Portuguese</option>
+              <option value="Russian">Russian</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Korean">Korean</option>
+              <option value="Chinese">Chinese (Simplified)</option>
+              <option value="Arabic">Arabic</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Dutch">Dutch</option>
+              <option value="Polish">Polish</option>
+              <option value="Turkish">Turkish</option>
+              <option value="Ukrainian">Ukrainian</option>
             </select>
             <button class="swap-btn" id="swap-langs-btn">⇄</button>
             <select class="lang-select" id="lang-to">
-              <option value="es">Spanish</option>
-              <option value="en">English</option>
-              <option value="fr">French</option>
-              <option value="de">German</option>
-              <option value="it">Italian</option>
-              <option value="pt">Portuguese</option>
-              <option value="ru">Russian</option>
-              <option value="ja">Japanese</option>
-              <option value="ko">Korean</option>
-              <option value="zh">Chinese (Simplified)</option>
-              <option value="ar">Arabic</option>
-              <option value="hi">Hindi</option>
-              <option value="nl">Dutch</option>
-              <option value="pl">Polish</option>
-              <option value="tr">Turkish</option>
-              <option value="sv">Swedish</option>
-              <option value="da">Danish</option>
-              <option value="fi">Finnish</option>
-              <option value="no">Norwegian</option>
-              <option value="he">Hebrew</option>
-              <option value="th">Thai</option>
-              <option value="vi">Vietnamese</option>
-              <option value="uk">Ukrainian</option>
+              <option value="Spanish">Spanish</option>
+              <option value="English">English</option>
+              <option value="French">French</option>
+              <option value="German">German</option>
+              <option value="Italian">Italian</option>
+              <option value="Portuguese">Portuguese</option>
+              <option value="Russian">Russian</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Korean">Korean</option>
+              <option value="Chinese">Chinese (Simplified)</option>
+              <option value="Arabic">Arabic</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Dutch">Dutch</option>
+              <option value="Polish">Polish</option>
+              <option value="Turkish">Turkish</option>
+              <option value="Ukrainian">Ukrainian</option>
             </select>
           </div>
           <textarea class="translate-input" id="translate-input" placeholder="Enter text to translate..." maxlength="5000"></textarea>
@@ -342,18 +318,19 @@
       </div>
     </div>
 
-    <!-- ── CHAT ── -->
+    <!-- CHAT -->
     <div class="page" id="page-chat">
       <div class="feature-header">
         <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
         <div class="feature-header-title">360 Chat</div>
+        <div style="margin-left:auto;font-size:11px;color:var(--mut);" id="chat-room-label">General</div>
       </div>
       <div class="chat-page" style="height:calc(100dvh - var(--header-h) - var(--nav-h) - 56px);">
-        <div id="chat-name-setup" class="chat-name-setup" style="display:none;">
-          <div class="chat-name-title">What's your name?</div>
-          <div class="chat-name-sub">Set a display name to start chatting</div>
-          <input class="chat-name-input" id="chat-name-input" type="text" placeholder="Your name" maxlength="20" />
-          <button class="chat-name-btn" id="chat-name-btn">Start Chatting</button>
+        <div id="chat-auth-gate" class="chat-gate" style="display:none;">
+          <div class="chat-gate-icon">💬</div>
+          <div class="chat-gate-title">Sign in to chat</div>
+          <div class="chat-gate-sub">360 Chat syncs across all your devices. Sign in to join the conversation.</div>
+          <button class="chat-gate-btn" id="chat-signin-btn">Sign In</button>
         </div>
         <div class="chat-messages" id="chat-messages" style="display:none;"></div>
         <div class="chat-input-bar" id="chat-input-bar" style="display:none;">
@@ -363,7 +340,7 @@
       </div>
     </div>
 
-    <!-- ── URL SHORTENER ── -->
+    <!-- URL SHORTENER -->
     <div class="page" id="page-shortener">
       <div class="feature-header">
         <button class="feature-back-btn" onclick="navigateTo('home')">←</button>
@@ -382,7 +359,7 @@
       </div>
     </div>
 
-    <!-- ── GAMES ── -->
+    <!-- GAMES -->
     <div class="page" id="page-games">
       <div class="section-header"><div class="section-title">Games</div></div>
       <div class="games-page">
@@ -390,7 +367,7 @@
       </div>
     </div>
 
-    <!-- ── MORE / SETTINGS ── -->
+    <!-- MORE / SETTINGS -->
     <div class="page" id="page-more">
       <div class="section-header"><div class="section-title">Settings</div></div>
       <div class="settings-page">
@@ -441,13 +418,13 @@
           </div>
         </div>
         <div class="settings-group">
-          <div class="settings-group-title">Legal & About</div>
-          <a class="settings-link-row" href="https://360-search.com/privacypolicy.html" target="_blank">
+          <div class="settings-group-title">Legal &amp; About</div>
+          <a class="settings-link-row" href="https://beta.360-search.com/privacypolicy" target="_blank">
             <span class="settings-link-icon">🔒</span>
             <div class="settings-row-left"><div class="settings-row-label">Privacy Policy</div></div>
             <span class="settings-link-chevron">›</span>
           </a>
-          <a class="settings-link-row" href="https://360-search.com/tos.html" target="_blank">
+          <a class="settings-link-row" href="https://beta.360-search.com/tos" target="_blank">
             <span class="settings-link-icon">📜</span>
             <div class="settings-row-left"><div class="settings-row-label">Terms of Service</div></div>
             <span class="settings-link-chevron">›</span>
@@ -497,139 +474,145 @@
   </div>
 </div>
 
-<!-- IFRAME VIEWER (games) -->
+<!-- IFRAME VIEWER -->
 <div id="iframe-viewer">
   <div class="iframe-header">
     <button class="iframe-close-btn" id="iframe-close-btn">✕</button>
     <div class="iframe-title" id="iframe-title">Loading…</div>
   </div>
-  <iframe class="iframe-viewer-frame" id="iframe-frame" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  <iframe class="iframe-viewer-frame" id="iframe-frame" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"></iframe>
 </div>
 
 <div id="toast-container"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════
-//  360 ANDROID v3.0.0 — FULL NATIVE APP
+//  360 ANDROID v3.0.0 — SUPABASE INTEGRATED
 // ═══════════════════════════════════════════════════════
 
-const SUPABASE_URL = "https://wiswfpfsjiowtrdyqpxy.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpc3dmcGZzamlvd3RyZHlxcHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzg4OTcsImV4cCI6MjA4MzkxNDg5N30.z_4FtM2c8UwgrRlafPYjolQuod4IoHQats95XHio1zM";
-const SEARCH_URL   = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/search";
-const AI_URL       = "https://wiswfpfsjiowtrdyqpxy.supabase.co/functions/v1/ai-chat";
-const AUTH_HEADERS = { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` };
+const SB_URL   = "https://wiswfpfsjiowtrdyqpxy.supabase.co";
+const SB_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpc3dmcGZzamlvd3RyZHlxcHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzg4OTcsImV4cCI6MjA4MzkxNDg5N30.z_4FtM2c8UwgrRlafPYjolQuod4IoHQats95XHio1zM";
+const AI_URL       = SB_URL + "/functions/v1/ai-chatbot";
+const SEARCH_URL   = SB_URL + "/functions/v1/search";
+const STOCKS_URL   = SB_URL + "/functions/v1/stocks-proxy";
+const TRANSLATE_URL= SB_URL + "/functions/v1/dynamic-endpoint";
+const SHORTENER_URL= SB_URL + "/functions/v1/smooth-endpoint";
+const HDRS         = { "Content-Type": "application/json", "Authorization": "Bearer " + SB_KEY };
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+// ── UTILITIES ──────────────────────────────────────────
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function showToast(msg, dur) {
+  dur = dur || 3000;
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.getElementById("toast-container").appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
 
 // ── SPLASH ─────────────────────────────────────────────
 (async () => {
   const splash = document.getElementById("splash");
-  const delay = ms => new Promise(r => setTimeout(r, ms));
+  const delay = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
   await delay(80);
   document.getElementById("s3").classList.add("splash-anim");
   await delay(130); document.getElementById("s6").classList.add("splash-anim");
   await delay(130); document.getElementById("s0").classList.add("splash-anim");
   await delay(900);
   splash.classList.add("fade");
-  splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+  splash.addEventListener("transitionend", function() { splash.remove(); }, { once: true });
 })();
 
-// ── TOAST ──────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.createElement("div");
-  t.className = "toast"; t.textContent = msg;
-  document.getElementById("toast-container").appendChild(t);
-  setTimeout(() => t.remove(), 3000);
-}
-
-// ── THEME & DARK ───────────────────────────────────────
+// ── THEME & DARK MODE ──────────────────────────────────
 (function() {
-  const saved = localStorage.getItem("theme") || "ocean";
+  var saved = localStorage.getItem("theme") || "ocean";
   document.body.classList.add("theme-" + saved);
-  document.querySelectorAll(".theme-swatch").forEach(s => {
+  document.querySelectorAll(".theme-swatch").forEach(function(s) {
     s.classList.toggle("active", s.dataset.theme === saved);
   });
-  const dark = localStorage.getItem("darkMode") === "true";
+  var dark = localStorage.getItem("darkMode") === "true";
   document.body.classList.toggle("dark", dark);
-  document.getElementById("dark-toggle")?.classList.toggle("on", dark);
+  var dt = document.getElementById("dark-toggle");
+  if (dt) dt.classList.toggle("on", dark);
 })();
 
-document.getElementById("dark-toggle")?.addEventListener("click", function() {
-  const isDark = document.body.classList.toggle("dark");
+document.getElementById("dark-toggle") && document.getElementById("dark-toggle").addEventListener("click", function() {
+  var isDark = document.body.classList.toggle("dark");
   localStorage.setItem("darkMode", isDark);
   this.classList.toggle("on", isDark);
 });
 
-document.querySelectorAll(".theme-swatch").forEach(s => {
+document.querySelectorAll(".theme-swatch").forEach(function(s) {
   s.addEventListener("click", function() {
-    document.body.classList.forEach(c => { if (c.startsWith("theme-")) document.body.classList.remove(c); });
+    document.body.className.split(" ").forEach(function(c) { if (c.startsWith("theme-")) document.body.classList.remove(c); });
     document.body.classList.add("theme-" + this.dataset.theme);
     localStorage.setItem("theme", this.dataset.theme);
-    document.querySelectorAll(".theme-swatch").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".theme-swatch").forEach(function(x) { x.classList.remove("active"); });
     this.classList.add("active");
   });
 });
 
 // ── NAVIGATION ─────────────────────────────────────────
-let currentPage = "home";
-const NAV_PAGES = ["home","search","ai","games","more"];
+var currentPage = "home";
 
 function navigateTo(pageId) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-  const page = document.getElementById("page-" + pageId);
-  const tab  = document.querySelector(`.nav-tab[data-page="${pageId}"]`);
+  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelectorAll(".nav-tab").forEach(function(t) { t.classList.remove("active"); });
+  var page = document.getElementById("page-" + pageId);
+  var tab  = document.querySelector(".nav-tab[data-page='" + pageId + "']");
   if (page) page.classList.add("active");
   if (tab)  tab.classList.add("active");
   currentPage = pageId;
   document.getElementById("page-content").scrollTo(0, 0);
-  // Trigger page-specific load
   if (pageId === "weather") loadWeatherPage();
   if (pageId === "news")    loadNews("general");
   if (pageId === "chat")    initChat();
 }
 
-document.querySelectorAll(".nav-tab").forEach(btn => btn.addEventListener("click", () => navigateTo(btn.dataset.page)));
-document.querySelectorAll(".quick-tile[data-page]").forEach(tile => {
-  tile.addEventListener("click", e => { e.preventDefault(); navigateTo(tile.dataset.page); });
+document.querySelectorAll(".nav-tab").forEach(function(btn) {
+  btn.addEventListener("click", function() { navigateTo(this.dataset.page); });
 });
-document.getElementById("settingsHeaderBtn")?.addEventListener("click", () => navigateTo("more"));
+document.querySelectorAll(".quick-tile[data-page]").forEach(function(tile) {
+  tile.addEventListener("click", function(e) { e.preventDefault(); navigateTo(this.dataset.page); });
+});
+document.getElementById("settingsHeaderBtn") && document.getElementById("settingsHeaderBtn").addEventListener("click", function() { navigateTo("more"); });
 
 // ── CLOCK ──────────────────────────────────────────────
-setInterval(() => {
-  const el = document.getElementById("clock");
+setInterval(function() {
+  var el = document.getElementById("clock");
   if (el) el.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }, 1000);
 
-// ── WEATHER (home chip) ────────────────────────────────
-let lastTempC = null;
-let tempUnit  = localStorage.getItem("tempUnit") || "C";
+// ── WEATHER HOME CHIP ──────────────────────────────────
+var lastTempC = null;
+var tempUnit  = localStorage.getItem("tempUnit") || "C";
 
 function renderWeatherChip() {
-  const chip = document.getElementById("weatherChip");
+  var chip = document.getElementById("weatherChip");
   if (!chip || lastTempC === null) return;
-  const t = tempUnit === "C" ? Math.round(lastTempC) + "°C" : Math.round(lastTempC * 9/5 + 32) + "°F";
+  var t = tempUnit === "C" ? Math.round(lastTempC) + "°C" : Math.round(lastTempC * 9/5 + 32) + "°F";
   chip.textContent = "🌤 " + t;
 }
 
-let lastCoords = null;
-(async function() {
+var lastCoords = null;
+(function() {
   if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(async pos => {
+  navigator.geolocation.getCurrentPosition(function(pos) {
     lastCoords = pos.coords;
-    try {
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true&hourly=relative_humidity_2m,windspeed_10m,apparent_temperature&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5`);
-      const d = await r.json();
-      lastTempC = d.current_weather.temperature;
-      window._weatherData = d;
-      renderWeatherChip();
-    } catch {}
-  }, () => {});
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.coords.latitude + "&longitude=" + pos.coords.longitude + "&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5")
+      .then(function(r) { return r.json(); })
+      .then(function(d) { lastTempC = d.current_weather.temperature; window._weatherData = d; renderWeatherChip(); })
+      .catch(function() {});
+  }, function() {});
 })();
 
-const tempToggle = document.getElementById("temp-toggle");
+var tempToggle = document.getElementById("temp-toggle");
 if (tempUnit === "F" && tempToggle) tempToggle.classList.add("on");
-tempToggle?.addEventListener("click", function() {
+tempToggle && tempToggle.addEventListener("click", function() {
   tempUnit = tempUnit === "C" ? "F" : "C";
   localStorage.setItem("tempUnit", tempUnit);
   this.classList.toggle("on", tempUnit === "F");
@@ -638,567 +621,533 @@ tempToggle?.addEventListener("click", function() {
 });
 
 // ── WEATHER PAGE ───────────────────────────────────────
-const WMO = {0:"☀️ Clear",1:"🌤 Mostly Clear",2:"⛅ Partly Cloudy",3:"☁️ Overcast",45:"🌫 Foggy",48:"🌫 Icy Fog",51:"🌦 Light Drizzle",53:"🌦 Drizzle",55:"🌧 Heavy Drizzle",61:"🌧 Light Rain",63:"🌧 Rain",65:"🌧 Heavy Rain",71:"🌨 Light Snow",73:"🌨 Snow",75:"❄️ Heavy Snow",80:"🌦 Rain Showers",81:"🌧 Heavy Showers",95:"⛈ Thunderstorm",96:"⛈ Hail Storm",99:"⛈ Heavy Hail"};
-const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var WMO = {0:"☀️ Clear",1:"🌤 Mostly Clear",2:"⛅ Partly Cloudy",3:"☁️ Overcast",45:"🌫 Foggy",48:"🌫 Icy Fog",51:"🌦 Light Drizzle",53:"🌦 Drizzle",55:"🌧 Heavy Drizzle",61:"🌧 Light Rain",63:"🌧 Rain",65:"🌧 Heavy Rain",71:"🌨 Light Snow",73:"🌨 Snow",75:"❄️ Heavy Snow",80:"🌦 Rain Showers",81:"🌧 Heavy Showers",95:"⛈ Thunderstorm",96:"⛈ Hail Storm",99:"⛈ Heavy Hail"};
+var DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-async function loadWeatherPage() {
-  const content = document.getElementById("weather-content");
-  const loader  = document.getElementById("weather-loader");
+function loadWeatherPage() {
+  var content = document.getElementById("weather-content");
+  var loader  = document.getElementById("weather-loader");
   if (!loader) return;
-
-  // If we already have data from chip load, use it
-  if (window._weatherData && window._weatherData.daily) {
-    renderWeatherPage(window._weatherData);
-    return;
-  }
-
+  if (window._weatherData && window._weatherData.daily) { renderWeatherPage(window._weatherData); return; }
   loader.style.display = "block";
-
   if (!navigator.geolocation) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location required</div><div class="empty-state-text">Enable location permission to see weather.</div></div>`;
+    content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location required</div></div>';
     return;
   }
-
-  navigator.geolocation.getCurrentPosition(async pos => {
-    try {
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true&hourly=relative_humidity_2m,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5`);
-      const d = await r.json();
-      window._weatherData = d;
-      lastTempC = d.current_weather.temperature;
-      renderWeatherChip();
-      renderWeatherPage(d);
-    } catch(e) {
-      content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Couldn't load weather</div><div class="empty-state-text">${e.message}</div></div>`;
-    }
-  }, () => {
-    content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location denied</div><div class="empty-state-text">Enable location permission in your phone settings.</div></div>`;
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.coords.latitude + "&longitude=" + pos.coords.longitude + "&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5")
+      .then(function(r) { return r.json(); })
+      .then(function(d) { window._weatherData = d; lastTempC = d.current_weather.temperature; renderWeatherChip(); renderWeatherPage(d); })
+      .catch(function(e) { content.innerHTML = '<div class="empty-state"><div class="empty-state-title">⚠️ ' + escHtml(e.message) + '</div></div>'; });
+  }, function() {
+    content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📍</div><div class="empty-state-title">Location denied</div><div class="empty-state-text">Enable location in phone settings.</div></div>';
   });
 }
 
 function renderWeatherPage(d) {
-  const content = document.getElementById("weather-content");
-  const cw = d.current_weather;
-  const daily = d.daily;
-  const C2F = t => Math.round(t * 9/5 + 32);
-  const fmt  = t => tempUnit === "C" ? Math.round(t) + "°C" : C2F(t) + "°F";
-  const wmo  = code => WMO[code] || "🌡 " + code;
-
-  const forecastRows = daily.time.slice(0,5).map((dateStr, i) => {
-    const date = new Date(dateStr);
-    const day  = i === 0 ? "Today" : DAYS[date.getDay()];
-    const icon = (wmo(daily.weathercode[i]).split(" ")[0]) || "🌡";
-    const hi   = fmt(daily.temperature_2m_max[i]);
-    const lo   = fmt(daily.temperature_2m_min[i]);
-    return `<div class="forecast-row">
-      <span class="forecast-day">${day}</span>
-      <span class="forecast-icon">${icon}</span>
-      <span class="forecast-range">${lo} – ${hi}</span>
-    </div>`;
+  var content = document.getElementById("weather-content");
+  var cw = d.current_weather;
+  var daily = d.daily;
+  function fmt(t) { return tempUnit === "C" ? Math.round(t) + "°C" : Math.round(t * 9/5 + 32) + "°F"; }
+  function wmo(code) { return WMO[code] || "🌡 Unknown"; }
+  var rows = daily.time.slice(0,5).map(function(dateStr, i) {
+    var date = new Date(dateStr);
+    var day  = i === 0 ? "Today" : DAYS[date.getDay()];
+    var icon = (wmo(daily.weathercode[i]).split(" ")[0]) || "🌡";
+    return '<div class="forecast-row"><span class="forecast-day">' + day + '</span><span class="forecast-icon">' + icon + '</span><span class="forecast-range">' + fmt(daily.temperature_2m_min[i]) + ' – ' + fmt(daily.temperature_2m_max[i]) + '</span></div>';
   }).join("");
-
-  content.innerHTML = `
-    <div class="weather-hero">
-      <div class="weather-temp">${fmt(cw.temperature)}</div>
-      <div class="weather-desc">${wmo(cw.weathercode)}</div>
-      <div class="weather-loc">📍 Your Location</div>
-    </div>
-    <div class="weather-grid">
-      <div class="weather-card"><div class="weather-card-label">Wind</div><div class="weather-card-value">${Math.round(cw.windspeed)} km/h</div></div>
-      <div class="weather-card"><div class="weather-card-label">Precipitation</div><div class="weather-card-value">${daily.precipitation_probability_max?.[0] ?? '--'}%</div></div>
-    </div>
-    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">5-Day Forecast</div>
-    ${forecastRows}`;
+  content.innerHTML = '<div class="weather-hero"><div class="weather-temp">' + fmt(cw.temperature) + '</div><div class="weather-desc">' + wmo(cw.weathercode) + '</div><div class="weather-loc">📍 Your Location</div></div><div class="weather-grid"><div class="weather-card"><div class="weather-card-label">Wind</div><div class="weather-card-value">' + Math.round(cw.windspeed) + ' km/h</div></div><div class="weather-card"><div class="weather-card-label">Precipitation</div><div class="weather-card-value">' + (daily.precipitation_probability_max ? daily.precipitation_probability_max[0] : '--') + '%</div></div></div><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:10px;">5-Day Forecast</div>' + rows;
 }
 
 // ── NEWS ───────────────────────────────────────────────
-let newsCategory = "general";
-let newsLoaded   = {};
-
-document.querySelectorAll(".news-tab").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".news-tab").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    loadNews(btn.dataset.cat);
+var newsLoaded = {};
+document.querySelectorAll(".news-tab").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".news-tab").forEach(function(b) { b.classList.remove("active"); });
+    this.classList.add("active");
+    newsLoaded = {};
+    loadNews(this.dataset.cat);
   });
 });
 
-async function loadNews(cat) {
-  if (newsLoaded[cat]) return; // already loaded
-  newsCategory = cat;
-  const content = document.getElementById("news-content");
-  document.getElementById("news-loader").style.display = "block";
-  content.innerHTML = `<div class="feature-loader" id="news-loader"><div class="spinner"></div>Loading news…</div>`;
-
-  try {
-    // Use GNews free API (no key needed for basic use)
-    const r = await fetch(`https://gnews.io/api/v4/top-headlines?category=${cat}&lang=en&max=20&apikey=pub_free`);
-    if (!r.ok) throw new Error("news unavailable");
-    const d = await r.json();
-    if (!d.articles?.length) throw new Error("no articles");
-    renderNews(d.articles);
-    newsLoaded[cat] = true;
-  } catch {
-    // Fallback: use RSS via rss2json
-    try {
-      const feeds = {
-        general:"https://feeds.bbci.co.uk/news/rss.xml",
-        technology:"https://feeds.bbci.co.uk/news/technology/rss.xml",
-        business:"https://feeds.bbci.co.uk/news/business/rss.xml",
-        sports:"https://feeds.bbci.co.uk/news/sport/rss.xml",
-        entertainment:"https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
-        health:"https://feeds.bbci.co.uk/news/health/rss.xml",
-        science:"https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
-      };
-      const feed = feeds[cat] || feeds.general;
-      const r2 = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=20`);
-      const d2 = await r2.json();
-      if (d2.items?.length) {
-        const articles = d2.items.map(item => ({
-          title: item.title,
-          description: item.description?.replace(/<[^>]*>/g,'').slice(0,200),
-          url: item.link,
-          source: { name: d2.feed.title || "BBC News" },
-          publishedAt: item.pubDate
-        }));
-        renderNews(articles);
-        newsLoaded[cat] = true;
-      } else throw new Error("no articles");
-    } catch {
-      document.getElementById("news-content").innerHTML = `<div class="empty-state"><div class="empty-state-icon">📰</div><div class="empty-state-title">News unavailable</div><div class="empty-state-text">Check your connection and try again.</div></div>`;
-    }
-  }
+function loadNews(cat) {
+  if (newsLoaded[cat]) return;
+  var content = document.getElementById("news-content");
+  content.innerHTML = '<div class="feature-loader"><div class="spinner"></div>Loading news…</div>';
+  var feeds = {
+    general:"https://feeds.bbci.co.uk/news/rss.xml",
+    technology:"https://feeds.bbci.co.uk/news/technology/rss.xml",
+    business:"https://feeds.bbci.co.uk/news/business/rss.xml",
+    sports:"https://feeds.bbci.co.uk/news/sport/rss.xml",
+    entertainment:"https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+    health:"https://feeds.bbci.co.uk/news/health/rss.xml",
+    science:"https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
+  };
+  var feed = feeds[cat] || feeds.general;
+  fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(feed) + "&count=25")
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.items || !d.items.length) throw new Error("No articles");
+      var articles = d.items.map(function(item) {
+        return { title: item.title, description: (item.description || "").replace(/<[^>]*>/g,"").slice(0,200), url: item.link, source: { name: d.feed.title || "BBC News" }, publishedAt: item.pubDate };
+      });
+      content.innerHTML = articles.map(function(a) {
+        return '<div class="news-card" onclick="if(window.Android){Android.openUrl(\'' + escHtml(a.url) + '\')}else{window.open(\'' + escHtml(a.url) + '\',\'_blank\')}"><div class="news-card-source">' + escHtml(a.source.name) + '</div><div class="news-card-title">' + escHtml(a.title) + '</div>' + (a.description ? '<div class="news-card-desc">' + escHtml(a.description) + '</div>' : '') + '<div class="news-card-time">' + (a.publishedAt ? new Date(a.publishedAt).toLocaleString() : "") + '</div></div>';
+      }).join("");
+      newsLoaded[cat] = true;
+    })
+    .catch(function() {
+      content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📰</div><div class="empty-state-title">News unavailable</div><div class="empty-state-text">Check your connection and try again.</div></div>';
+    });
 }
 
-function renderNews(articles) {
-  const content = document.getElementById("news-content");
-  content.innerHTML = articles.map(a => `
-    <div class="news-card" onclick="window.open('${escHtml(a.url)}','_system')">
-      <div class="news-card-source">${escHtml(a.source?.name || "News")}</div>
-      <div class="news-card-title">${escHtml(a.title)}</div>
-      ${a.description ? `<div class="news-card-desc">${escHtml(a.description)}</div>` : ""}
-      <div class="news-card-time">${a.publishedAt ? new Date(a.publishedAt).toLocaleString() : ""}</div>
-    </div>`).join("");
-}
-
-// ── STOCKS ─────────────────────────────────────────────
-document.getElementById("stock-btn")?.addEventListener("click", () => {
-  const ticker = document.getElementById("stock-input").value.trim().toUpperCase();
+// ── STOCKS (via stocks-proxy edge function) ─────────────
+document.getElementById("stock-btn") && document.getElementById("stock-btn").addEventListener("click", function() {
+  var ticker = document.getElementById("stock-input").value.trim().toUpperCase();
   if (ticker) lookupStock(ticker);
 });
-document.getElementById("stock-input")?.addEventListener("keydown", e => {
-  if (e.key === "Enter") { e.preventDefault(); const t = e.target.value.trim().toUpperCase(); if(t) lookupStock(t); }
+document.getElementById("stock-input") && document.getElementById("stock-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") { e.preventDefault(); var t = this.value.trim().toUpperCase(); if(t) lookupStock(t); }
 });
 
-async function lookupStock(ticker) {
-  const result = document.getElementById("stock-result");
-  result.innerHTML = `<div class="feature-loader"><div class="spinner"></div></div>`;
-  try {
-    // Yahoo Finance via allorigins proxy (no CORS)
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
-    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-    const outer = await r.json();
-    const d = JSON.parse(outer.contents);
-    const meta = d.chart.result[0].meta;
-    const price  = meta.regularMarketPrice;
-    const prev   = meta.previousClose || meta.chartPreviousClose;
-    const change = price - prev;
-    const pct    = ((change / prev) * 100).toFixed(2);
-    const up     = change >= 0;
-    const fmtP   = p => p.toFixed(2);
-    result.innerHTML = `
-      <div class="stock-hero">
-        <div class="stock-ticker">${ticker}</div>
-        <div class="stock-name">${meta.longName || meta.shortName || ticker}</div>
-        <div class="stock-price">$${fmtP(price)}</div>
-        <div class="stock-change ${up?'up':'down'}">${up?'+':''}${fmtP(change)} (${up?'+':''}${pct}%)</div>
-      </div>
-      <div class="weather-grid" style="margin-top:10px;">
-        <div class="weather-card"><div class="weather-card-label">Prev Close</div><div class="weather-card-value">$${fmtP(prev)}</div></div>
-        <div class="weather-card"><div class="weather-card-label">Currency</div><div class="weather-card-value">${meta.currency}</div></div>
-        <div class="weather-card"><div class="weather-card-label">Exchange</div><div class="weather-card-value">${meta.exchangeName}</div></div>
-        <div class="weather-card"><div class="weather-card-label">Market</div><div class="weather-card-value">${meta.marketState}</div></div>
-      </div>`;
-  } catch {
-    result.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📈</div><div class="empty-state-title">Couldn't find ${ticker}</div><div class="empty-state-text">Check the ticker symbol and try again.</div></div>`;
-  }
+function lookupStock(ticker) {
+  var result = document.getElementById("stock-result");
+  result.innerHTML = '<div class="feature-loader"><div class="spinner"></div></div>';
+  fetch(STOCKS_URL + "?ticker=" + encodeURIComponent(ticker))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var q = data["Global Quote"];
+      if (!q || !q["05. price"]) {
+        // Fallback to Yahoo via allorigins
+        return fetch("https://api.allorigins.win/get?url=" + encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/" + ticker + "?interval=1d&range=1d"))
+          .then(function(r) { return r.json(); })
+          .then(function(outer) {
+            var d2 = JSON.parse(outer.contents);
+            var meta = d2.chart.result[0].meta;
+            renderStock(ticker, meta.regularMarketPrice, meta.previousClose || meta.chartPreviousClose, meta.longName || meta.shortName || ticker, meta.currency, meta.exchangeName);
+          });
+      }
+      var price  = parseFloat(q["05. price"]);
+      var prev   = parseFloat(q["08. previous close"]);
+      var name   = ticker;
+      renderStock(ticker, price, prev, name, "USD", q["07. latest trading day"]);
+    })
+    .catch(function() {
+      result.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📈</div><div class="empty-state-title">Couldn\'t find ' + escHtml(ticker) + '</div></div>';
+    });
 }
 
-// ── TRANSLATOR ─────────────────────────────────────────
-const transInput  = document.getElementById("translate-input");
-const transOutput = document.getElementById("translate-output");
-const transBtn    = document.getElementById("translate-btn");
-const copyTransBtn = document.getElementById("copy-translation-btn");
-const charCount   = document.getElementById("translate-char-count");
+function renderStock(ticker, price, prev, name, currency, extra) {
+  var result = document.getElementById("stock-result");
+  var change = price - prev;
+  var pct    = ((change / prev) * 100).toFixed(2);
+  var up     = change >= 0;
+  result.innerHTML = '<div class="stock-hero"><div class="stock-ticker">' + escHtml(ticker) + '</div><div class="stock-name">' + escHtml(name) + '</div><div class="stock-price">$' + price.toFixed(2) + '</div><div class="stock-change ' + (up?"up":"down") + '">' + (up?"+":"") + change.toFixed(2) + ' (' + (up?"+":"") + pct + '%)</div></div><div class="weather-grid" style="margin-top:10px;"><div class="weather-card"><div class="weather-card-label">Prev Close</div><div class="weather-card-value">$' + prev.toFixed(2) + '</div></div><div class="weather-card"><div class="weather-card-label">Currency</div><div class="weather-card-value">' + escHtml(currency) + '</div></div></div>';
+}
 
-transInput?.addEventListener("input", () => {
-  charCount.textContent = transInput.value.length;
-});
+// ── TRANSLATOR (via dynamic-endpoint edge function) ─────
+var transInput   = document.getElementById("translate-input");
+var transOutput  = document.getElementById("translate-output");
+var transBtn     = document.getElementById("translate-btn");
+var copyTransBtn = document.getElementById("copy-translation-btn");
+var charCount    = document.getElementById("translate-char-count");
 
-document.getElementById("swap-langs-btn")?.addEventListener("click", () => {
-  const from = document.getElementById("lang-from");
-  const to   = document.getElementById("lang-to");
-  const fv   = from.value; const tv = to.value;
-  if (fv !== "auto") { from.value = tv; to.value = fv; }
+transInput && transInput.addEventListener("input", function() { charCount.textContent = transInput.value.length; });
+
+document.getElementById("swap-langs-btn") && document.getElementById("swap-langs-btn").addEventListener("click", function() {
+  var from = document.getElementById("lang-from");
+  var to   = document.getElementById("lang-to");
+  var fv = from.value, tv = to.value;
+  from.value = tv; to.value = fv;
   if (transOutput.value) { transInput.value = transOutput.value; transOutput.value = ""; charCount.textContent = transInput.value.length; }
 });
 
-transBtn?.addEventListener("click", async () => {
-  const text = transInput.value.trim();
+transBtn && transBtn.addEventListener("click", function() {
+  var text = transInput.value.trim();
   if (!text) return;
-  const from = document.getElementById("lang-from").value;
-  const to   = document.getElementById("lang-to").value;
+  var from = document.getElementById("lang-from").value;
+  var to   = document.getElementById("lang-to").value;
   transBtn.textContent = "Translating…"; transBtn.disabled = true;
-  try {
-    // Use MyMemory free translation API (no key needed, 5000 chars/day free)
-    const langPair = from === "auto" ? `en|${to}` : `${from}|${to}`;
-    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}`);
-    const d = await r.json();
-    if (d.responseStatus === 200) {
-      transOutput.value = d.responseData.translatedText;
-      copyTransBtn.style.display = "block";
-    } else throw new Error(d.responseDetails || "Translation failed");
-  } catch(e) {
-    transOutput.value = "Translation failed: " + e.message;
-  }
-  transBtn.textContent = "Translate"; transBtn.disabled = false;
+  fetch(TRANSLATE_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ text: text, from: from, to: to })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.translated) {
+        transOutput.value = d.translated;
+        copyTransBtn.style.display = "block";
+      } else {
+        transOutput.value = "Translation failed: " + (d.error || "Unknown error");
+      }
+    })
+    .catch(function(e) { transOutput.value = "Translation failed: " + e.message; })
+    .finally(function() { transBtn.textContent = "Translate"; transBtn.disabled = false; });
 });
 
-copyTransBtn?.addEventListener("click", () => {
-  navigator.clipboard?.writeText(transOutput.value).then(() => showToast("Copied!")).catch(() => {
-    transOutput.select(); document.execCommand("copy"); showToast("Copied!");
-  });
+copyTransBtn && copyTransBtn.addEventListener("click", function() {
+  if (navigator.clipboard) { navigator.clipboard.writeText(transOutput.value).then(function() { showToast("Copied!"); }); }
+  else { transOutput.select(); document.execCommand("copy"); showToast("Copied!"); }
 });
 
-// ── URL SHORTENER ──────────────────────────────────────
-const shortHistory = JSON.parse(localStorage.getItem("short_history") || "[]");
+// ── URL SHORTENER (via smooth-endpoint edge function) ───
+var shortHistory = JSON.parse(localStorage.getItem("short_history") || "[]");
 
 function renderShortHistory() {
-  const el = document.getElementById("shortener-history");
+  var el = document.getElementById("shortener-history");
   if (!el) return;
-  el.innerHTML = shortHistory.slice(-5).reverse().map(item => `
-    <div class="short-result" style="margin-bottom:8px;">
-      <div class="short-url">${escHtml(item.short)}</div>
-      <button class="copy-btn" onclick="navigator.clipboard?.writeText('${escHtml(item.short)}').then(()=>showToast('Copied!'))">Copy</button>
-    </div>`).join("") || `<div style="color:var(--mut);font-size:13px;">No history yet</div>`;
+  el.innerHTML = shortHistory.slice(-5).reverse().map(function(item) {
+    return '<div class="short-result" style="margin-bottom:8px;"><div class="short-url">' + escHtml(item.short) + '</div><button class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + escHtml(item.short) + '\').then(function(){showToast(\'Copied!\')})">Copy</button></div>';
+  }).join("") || '<div style="color:var(--mut);font-size:13px;">No history yet</div>';
 }
 
-document.getElementById("shortener-btn")?.addEventListener("click", async () => {
-  const url = document.getElementById("shortener-input").value.trim();
+document.getElementById("shortener-btn") && document.getElementById("shortener-btn").addEventListener("click", function() {
+  var url = document.getElementById("shortener-input").value.trim();
   if (!url) { showToast("Enter a URL first"); return; }
-  const btn = document.getElementById("shortener-btn");
+  var btn = document.getElementById("shortener-btn");
   btn.textContent = "Shortening…"; btn.disabled = true;
-  try {
-    // TinyURL free API (no key needed)
-    const r = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
-    if (!r.ok) throw new Error("Service unavailable");
-    const shortUrl = await r.text();
-    document.getElementById("shortener-result").style.display = "block";
-    document.getElementById("shortener-result").innerHTML = `
-      <div class="short-result">
-        <div class="short-url">${escHtml(shortUrl)}</div>
-        <button class="copy-btn" onclick="navigator.clipboard?.writeText('${escHtml(shortUrl)}').then(()=>showToast('Copied!'))">Copy</button>
-      </div>`;
-    shortHistory.push({ original: url, short: shortUrl });
-    localStorage.setItem("short_history", JSON.stringify(shortHistory.slice(-20)));
-    renderShortHistory();
-  } catch(e) {
-    showToast("Failed: " + e.message);
-  }
-  btn.textContent = "Shorten URL"; btn.disabled = false;
+  fetch(SHORTENER_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ url: url })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.shortUrl) throw new Error(d.error || "No short URL returned");
+      var result = document.getElementById("shortener-result");
+      result.style.display = "block";
+      result.innerHTML = '<div class="short-result"><div class="short-url">' + escHtml(d.shortUrl) + '</div><button class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + escHtml(d.shortUrl) + '\').then(function(){showToast(\'Copied!\')})">Copy</button></div>';
+      shortHistory.push({ original: url, short: d.shortUrl });
+      localStorage.setItem("short_history", JSON.stringify(shortHistory.slice(-20)));
+      renderShortHistory();
+    })
+    .catch(function(e) { showToast("Failed: " + e.message); })
+    .finally(function() { btn.textContent = "Shorten URL"; btn.disabled = false; });
 });
-
 renderShortHistory();
 
-// ── CHAT (Supabase realtime) ────────────────────────────
-let chatChannel = null;
-let chatName    = localStorage.getItem("chatName") || "";
-let chatInited  = false;
+// ── CHAT (Supabase messages table — synced with web app) ─
+var chatChannel  = null;
+var chatInited   = false;
+var chatUser     = null;   // set when auth is known
 
 function initChat() {
-  if (!chatName) {
-    document.getElementById("chat-name-setup").style.display = "block";
-    document.getElementById("chat-messages").style.display   = "none";
-    document.getElementById("chat-input-bar").style.display  = "none";
-    return;
-  }
-  showChatUI();
+  sb.auth.getSession().then(function(res) {
+    var session = res.data && res.data.session;
+    if (!session) {
+      document.getElementById("chat-auth-gate").style.display  = "flex";
+      document.getElementById("chat-messages").style.display   = "none";
+      document.getElementById("chat-input-bar").style.display  = "none";
+      return;
+    }
+    chatUser = session.user;
+    document.getElementById("chat-auth-gate").style.display  = "none";
+    document.getElementById("chat-messages").style.display   = "flex";
+    document.getElementById("chat-input-bar").style.display  = "flex";
+    if (!chatInited) {
+      chatInited = true;
+      loadChatHistory();
+      subscribeChatRealtime();
+    }
+  });
 }
 
-document.getElementById("chat-name-btn")?.addEventListener("click", () => {
-  const name = document.getElementById("chat-name-input").value.trim();
-  if (!name) { showToast("Enter a name"); return; }
-  chatName = name;
-  localStorage.setItem("chatName", name);
-  showChatUI();
-});
+function loadChatHistory() {
+  sb.from("messages")
+    .select("id,username,text,role,created_at,user_id")
+    .is("channel_id", null)
+    .is("server_id", null)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(50)
+    .then(function(res) {
+      if (res.data) {
+        res.data.forEach(function(msg) {
+          appendChatBubble(msg.username || "User", msg.text || "", chatUser && msg.user_id === chatUser.id);
+        });
+      }
+    });
+}
 
-function showChatUI() {
-  document.getElementById("chat-name-setup").style.display = "none";
-  document.getElementById("chat-messages").style.display   = "flex";
-  document.getElementById("chat-input-bar").style.display  = "flex";
-  if (chatInited) return;
-  chatInited = true;
-  // Subscribe to Supabase realtime messages table
-  chatChannel = sb.channel("chat360_public")
-    .on("broadcast", { event: "message" }, ({ payload }) => {
-      appendChatBubble(payload.name, payload.text, payload.name === chatName);
+function subscribeChatRealtime() {
+  chatChannel = sb.channel("chat-android-public")
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: "channel_id=is.null"
+    }, function(payload) {
+      var msg = payload.new;
+      if (msg && msg.text && !msg.deleted_at && !msg.server_id) {
+        appendChatBubble(msg.username || "User", msg.text, chatUser && msg.user_id === chatUser.id);
+      }
     })
     .subscribe();
-  appendChatBubble("360", "Welcome to 360 Chat! Say hello 👋", false);
 }
 
 function appendChatBubble(name, text, isMine) {
-  const msgs = document.getElementById("chat-messages");
-  const wrap = document.createElement("div");
+  var msgs = document.getElementById("chat-messages");
+  var wrap = document.createElement("div");
   wrap.className = "chat-bubble-wrap" + (isMine ? " mine" : "");
-  wrap.innerHTML = `
-    <div class="chat-avatar">${escHtml(name[0]?.toUpperCase()||"?")}</div>
-    <div class="chat-bubble ${isMine?"mine":"them"}">
-      ${!isMine ? `<div style="font-size:11px;font-weight:700;color:var(--a);margin-bottom:3px;">${escHtml(name)}</div>` : ""}
-      ${escHtml(text)}
-    </div>`;
+  wrap.innerHTML = '<div class="chat-avatar">' + escHtml((name[0] || "?").toUpperCase()) + '</div><div class="chat-bubble ' + (isMine?"mine":"them") + '">' + (!isMine ? '<div style="font-size:11px;font-weight:700;color:var(--a);margin-bottom:3px;">' + escHtml(name) + '</div>' : '') + escHtml(text) + '</div>';
   msgs.appendChild(wrap);
   msgs.scrollTop = msgs.scrollHeight;
 }
 
-document.getElementById("chat-send-btn")?.addEventListener("click", sendChatMessage);
-document.getElementById("chat-input")?.addEventListener("keydown", e => {
+document.getElementById("chat-signin-btn") && document.getElementById("chat-signin-btn").addEventListener("click", openAuth);
+document.getElementById("chat-send-btn") && document.getElementById("chat-send-btn").addEventListener("click", sendChatMessage);
+document.getElementById("chat-input") && document.getElementById("chat-input").addEventListener("keydown", function(e) {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
 });
 
-async function sendChatMessage() {
-  const input = document.getElementById("chat-input");
-  const text  = input.value.trim();
-  if (!text || !chatName) return;
-  input.value = "";
-  input.style.height = "auto";
-  appendChatBubble(chatName, text, true);
-  try {
-    await chatChannel?.send({ type: "broadcast", event: "message", payload: { name: chatName, text } });
-  } catch {}
+function sendChatMessage() {
+  var input = document.getElementById("chat-input");
+  var text  = input.value.trim();
+  if (!text || !chatUser) return;
+  input.value = ""; input.style.height = "auto";
+  sb.from("profiles").select("username").eq("id", chatUser.id).maybeSingle()
+    .then(function(res) {
+      var username = (res.data && res.data.username) || chatUser.user_metadata && chatUser.user_metadata.username || chatUser.email.split("@")[0];
+      return sb.from("messages").insert({ user_id: chatUser.id, username: username, text: text, channel_id: null, server_id: null });
+    })
+    .then(function(res) {
+      if (res.error) showToast("Send failed: " + res.error.message);
+    })
+    .catch(function(e) { showToast("Send failed: " + e.message); });
 }
 
 // ── MUSIC ──────────────────────────────────────────────
-const music = document.getElementById("bgMusic");
-let musicEnabled = localStorage.getItem("music") === "true";
+var music = document.getElementById("bgMusic");
+var musicEnabled = localStorage.getItem("music") === "true";
 
 function syncMusic() {
-  const musicBtn    = document.getElementById("musicToggle");
-  const musicSettBtn = document.getElementById("music-settings-toggle");
-  if (musicBtn) musicBtn.textContent = musicEnabled ? "On" : "Off";
-  if (musicSettBtn) musicSettBtn.classList.toggle("on", musicEnabled);
+  var mb = document.getElementById("musicToggle");
+  var ms = document.getElementById("music-settings-toggle");
+  if (mb) mb.textContent = musicEnabled ? "On" : "Off";
+  if (ms) ms.classList.toggle("on", musicEnabled);
   document.getElementById("musicStrip").style.display = "flex";
-  if (musicEnabled && music) music.play().catch(() => {});
+  if (musicEnabled && music) music.play().catch(function() {});
   else if (music) music.pause();
 }
 
-document.getElementById("musicToggle")?.addEventListener("click", () => { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
-document.getElementById("music-settings-toggle")?.addEventListener("click", function() { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
+document.getElementById("musicToggle") && document.getElementById("musicToggle").addEventListener("click", function() { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
+document.getElementById("music-settings-toggle") && document.getElementById("music-settings-toggle").addEventListener("click", function() { musicEnabled = !musicEnabled; localStorage.setItem("music", musicEnabled); syncMusic(); });
 syncMusic();
 
 // ── AUTH ───────────────────────────────────────────────
-const authSheet = document.getElementById("auth-sheet");
-function openAuth()  { authSheet.classList.add("open"); }
-function closeAuth() { authSheet.classList.remove("open"); }
+var authSheet = document.getElementById("auth-sheet");
+function openAuth()  { if (authSheet) authSheet.classList.add("open"); }
+function closeAuth() { if (authSheet) authSheet.classList.remove("open"); }
 
-document.getElementById("signInHeaderBtn")?.addEventListener("click", openAuth);
-document.getElementById("auth-backdrop")?.addEventListener("click", closeAuth);
-document.getElementById("auth-close-btn")?.addEventListener("click", closeAuth);
-document.getElementById("profile-row")?.addEventListener("click", () => {
-  sb.auth.getUser().then(({ data }) => {
-    if (data?.user) { sb.auth.signOut().then(() => { showToast("Signed out"); updateProfileUI(null); }); }
-    else openAuth();
+document.getElementById("signInHeaderBtn") && document.getElementById("signInHeaderBtn").addEventListener("click", openAuth);
+document.getElementById("auth-backdrop")   && document.getElementById("auth-backdrop").addEventListener("click", closeAuth);
+document.getElementById("auth-close-btn")  && document.getElementById("auth-close-btn").addEventListener("click", closeAuth);
+
+document.getElementById("profile-row") && document.getElementById("profile-row").addEventListener("click", function() {
+  sb.auth.getSession().then(function(res) {
+    if (res.data && res.data.session) {
+      sb.auth.signOut().then(function() {
+        showToast("Signed out");
+        updateProfileUI(null);
+        chatUser = null; chatInited = false; chatChannel = null;
+        document.getElementById("chat-messages").innerHTML = "";
+      });
+    } else {
+      openAuth();
+    }
   });
 });
 
-document.getElementById("auth-login-btn")?.addEventListener("click", async () => {
-  const email = document.getElementById("auth-email").value;
-  const pass  = document.getElementById("auth-password").value;
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) document.getElementById("auth-error").textContent = error.message;
-  else { closeAuth(); showToast("Signed in!"); }
+document.getElementById("auth-login-btn") && document.getElementById("auth-login-btn").addEventListener("click", function() {
+  var email = document.getElementById("auth-email").value;
+  var pass  = document.getElementById("auth-password").value;
+  var errEl = document.getElementById("auth-error");
+  sb.auth.signInWithPassword({ email: email, password: pass })
+    .then(function(res) {
+      if (res.error) { errEl.textContent = res.error.message; }
+      else { closeAuth(); showToast("Signed in!"); if (currentPage === "chat") initChat(); }
+    });
 });
 
-document.getElementById("github-login")?.addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "github" }));
-document.getElementById("google-login")?.addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "google" }));
+document.getElementById("github-login") && document.getElementById("github-login").addEventListener("click", function() { sb.auth.signInWithOAuth({ provider: "github" }); });
+document.getElementById("google-login") && document.getElementById("google-login").addEventListener("click", function() { sb.auth.signInWithOAuth({ provider: "google" }); });
 
 function updateProfileUI(user) {
-  const nameEl  = document.getElementById("profile-name-label");
-  const emailEl = document.getElementById("profile-email-label");
-  const btnEl   = document.getElementById("signInHeaderBtn");
+  var nameEl  = document.getElementById("profile-name-label");
+  var emailEl = document.getElementById("profile-email-label");
+  var btnEl   = document.getElementById("signInHeaderBtn");
   if (user) {
-    const uname = user.user_metadata?.username || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+    var uname = (user.user_metadata && (user.user_metadata.username || user.user_metadata.full_name)) || (user.email && user.email.split("@")[0]) || "User";
     if (nameEl) nameEl.textContent = "@" + uname;
     if (emailEl) emailEl.textContent = user.email || "";
-    if (btnEl) { btnEl.textContent = uname[0].toUpperCase(); btnEl.style.background = "linear-gradient(135deg, var(--a), var(--a2))"; }
+    if (btnEl) { btnEl.textContent = uname[0].toUpperCase(); btnEl.style.background = "linear-gradient(135deg, var(--a), var(--a2))"; btnEl.style.color = "white"; }
   } else {
     if (nameEl) nameEl.textContent = "Sign in to 360";
     if (emailEl) emailEl.textContent = "Sync your preferences across devices";
-    if (btnEl) { btnEl.textContent = "👤"; btnEl.style.removeProperty("background"); }
+    if (btnEl) { btnEl.textContent = "👤"; btnEl.style.removeProperty("background"); btnEl.style.removeProperty("color"); }
   }
 }
-sb.auth.getSession().then(({ data }) => updateProfileUI(data?.session?.user || null));
-sb.auth.onAuthStateChange((_, session) => updateProfileUI(session?.user || null));
+sb.auth.getSession().then(function(res) { updateProfileUI(res.data && res.data.session && res.data.session.user || null); });
+sb.auth.onAuthStateChange(function(event, session) {
+  updateProfileUI(session && session.user || null);
+  if (session && session.user && currentPage === "chat") initChat();
+});
 
 // ── SEARCH ─────────────────────────────────────────────
-let searchTab = "all";
-function escHtml(s) {
-  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
+var searchTab = "all";
 
-document.getElementById("home-search-form")?.addEventListener("submit", e => {
+document.getElementById("home-search-form") && document.getElementById("home-search-form").addEventListener("submit", function(e) {
   e.preventDefault();
-  const q = document.getElementById("home-search-input").value.trim();
+  var q = document.getElementById("home-search-input").value.trim();
   if (!q) return;
   navigateTo("search");
   document.getElementById("search-page-input").value = q;
   runSearch(q, "all", 1);
 });
 
-document.getElementById("search-page-form")?.addEventListener("submit", e => {
+document.getElementById("search-page-form") && document.getElementById("search-page-form").addEventListener("submit", function(e) {
   e.preventDefault();
-  const q = document.getElementById("search-page-input").value.trim();
+  var q = document.getElementById("search-page-input").value.trim();
   if (q) runSearch(q, searchTab, 1);
 });
 
-document.querySelectorAll(".search-tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".search-tab-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    searchTab = btn.dataset.tab;
-    const q = document.getElementById("search-page-input").value.trim();
+document.querySelectorAll(".search-tab-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".search-tab-btn").forEach(function(b) { b.classList.remove("active"); });
+    this.classList.add("active");
+    searchTab = this.dataset.tab;
+    var q = document.getElementById("search-page-input").value.trim();
     if (q) runSearch(q, searchTab, 1);
   });
 });
 
-async function runSearch(q, tab, page) {
-  const loader  = document.getElementById("search-loader");
-  const empty   = document.getElementById("search-empty");
-  const resWrap = document.getElementById("results-container");
-  const imgGrid = document.getElementById("image-results");
-  const kpWrap  = document.getElementById("knowledge-panel-wrap");
-  const pagWrap = document.getElementById("pagination-wrap");
+function runSearch(q, tab, page) {
+  var loader  = document.getElementById("search-loader");
+  var empty   = document.getElementById("search-empty");
+  var resWrap = document.getElementById("results-container");
+  var imgGrid = document.getElementById("image-results");
+  var kpWrap  = document.getElementById("knowledge-panel-wrap");
+  var pagWrap = document.getElementById("pagination-wrap");
 
-  empty.style.display   = "none";
+  empty.style.display = "none";
   loader.classList.add("visible");
   resWrap.innerHTML = imgGrid.innerHTML = kpWrap.innerHTML = pagWrap.innerHTML = "";
   imgGrid.style.display = "none";
 
-  try {
-    const res  = await fetch(SEARCH_URL, {
-      method: "POST",
-      headers: AUTH_HEADERS,
-      body: JSON.stringify({ q, tab, page, safe: "moderate" })
-    });
-    const data = await res.json();
-    loader.classList.remove("visible");
-
-    if (data.kp) {
-      kpWrap.innerHTML = `<div class="knowledge-panel">
-        <div class="kp-title">${escHtml(data.kp.title)}</div>
-        ${data.kp.type ? `<div class="kp-type">${escHtml(data.kp.type)}</div>` : ""}
-        ${data.kp.description ? `<div class="kp-desc">${escHtml(data.kp.description)}</div>` : ""}
-      </div>`;
-    }
-
-    if (tab === "images" && data.images?.length) {
-      imgGrid.style.display = "grid";
-      imgGrid.innerHTML = data.images.map(img => `
-        <div class="image-grid-item" onclick="openIframe('${escHtml(img.url||img.contextLink||"#")}','Image')">
-          <img src="${escHtml(img.thumbnail||img.src)}" alt="${escHtml(img.title)}" loading="lazy" />
-        </div>`).join("");
-    } else if (data.web?.length) {
-      resWrap.innerHTML = data.web.map(r => `
-        <div class="result-card" onclick="window.open('${escHtml(r.url)}','_system')">
-          <div class="result-card-url">${escHtml((r.url||"").replace(/^https?:\/\//,"").split("/")[0])}</div>
-          <div class="result-card-title">${escHtml(r.title)}</div>
-          <div class="result-card-snippet">${escHtml(r.snippet)}</div>
-        </div>`).join("");
-      if (data.totalPages > 1) {
-        const btns = [];
-        if (page > 1) btns.push(`<button onclick="runSearch('${escHtml(q)}','${tab}',${page-1})" style="padding:10px 22px;border-radius:99px;border:1px solid var(--br);background:var(--surface);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit;">← Prev</button>`);
-        if (page < data.totalPages) btns.push(`<button onclick="runSearch('${escHtml(q)}','${tab}',${page+1})" style="padding:10px 22px;border-radius:99px;border:none;background:var(--a);color:white;font-size:14px;cursor:pointer;font-family:inherit;">Next →</button>`);
-        pagWrap.innerHTML = `<div style="display:flex;gap:10px;justify-content:center;">${btns.join("")}</div>`;
+  fetch(SEARCH_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ q: q, tab: tab, page: page, safe: "moderate" })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      loader.classList.remove("visible");
+      if (data.kp) {
+        kpWrap.innerHTML = '<div class="knowledge-panel"><div class="kp-title">' + escHtml(data.kp.title) + '</div>' + (data.kp.description ? '<div class="kp-desc">' + escHtml(data.kp.description) + '</div>' : "") + "</div>";
       }
-    } else {
-      resWrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No results</div><div class="empty-state-text">Try different keywords.</div></div>`;
-    }
-  } catch(err) {
-    loader.classList.remove("visible");
-    resWrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Search failed</div><div class="empty-state-text">${escHtml(err.message)}</div></div>`;
-  }
+      if (tab === "images" && data.images && data.images.length) {
+        imgGrid.style.display = "grid";
+        imgGrid.innerHTML = data.images.map(function(img) {
+          return '<div class="image-grid-item" onclick="openIframe(\'' + escHtml(img.url || img.contextLink || "#") + '\',\'Image\')"><img src="' + escHtml(img.thumbnail || img.src) + '" alt="' + escHtml(img.title) + '" loading="lazy" /></div>';
+        }).join("");
+      } else if (data.web && data.web.length) {
+        resWrap.innerHTML = data.web.map(function(r) {
+          var domain = (r.url || "").replace(/^https?:\/\//,"").split("/")[0];
+          return '<div class="result-card" onclick="window.open(\'' + escHtml(r.url) + '\',\'_blank\')"><div class="result-card-url">' + escHtml(domain) + '</div><div class="result-card-title">' + escHtml(r.title) + '</div><div class="result-card-snippet">' + escHtml(r.snippet) + '</div></div>';
+        }).join("");
+        if (data.totalPages > 1) {
+          var btns = [];
+          if (page > 1) btns.push('<button onclick="runSearch(\'' + escHtml(q) + '\',\'' + tab + '\',' + (page-1) + ')" style="padding:10px 22px;border-radius:99px;border:1px solid var(--br);background:var(--surface);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit;">← Prev</button>');
+          if (page < data.totalPages) btns.push('<button onclick="runSearch(\'' + escHtml(q) + '\',\'' + tab + '\',' + (page+1) + ')" style="padding:10px 22px;border-radius:99px;border:none;background:var(--a);color:white;font-size:14px;cursor:pointer;font-family:inherit;">Next →</button>');
+          pagWrap.innerHTML = '<div style="display:flex;gap:10px;justify-content:center;">' + btns.join("") + '</div>';
+        }
+      } else {
+        resWrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No results</div><div class="empty-state-text">Try different keywords.</div></div>';
+      }
+    })
+    .catch(function(err) {
+      loader.classList.remove("visible");
+      resWrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Search failed</div><div class="empty-state-text">' + escHtml(err.message) + '</div></div>';
+    });
 }
 
-// ── AI CHAT ────────────────────────────────────────────
-let aiHistory = [];
-const aiMessages = document.getElementById("ai-messages");
-const aiInput    = document.getElementById("ai-input");
+// ── AI CHAT (via ai-chatbot with correct {message,memory} format) ─
+var aiHistory = [];
+var aiMessages = document.getElementById("ai-messages");
+var aiInput    = document.getElementById("ai-input");
 
 function appendAiBubble(role, text) {
-  document.getElementById("ai-empty")?.remove();
-  const div = document.createElement("div");
-  div.className = `ai-bubble ${role}`;
-  if (role === "assistant") div.innerHTML = typeof marked !== "undefined" ? marked.parse(text) : text.replace(/\n/g,"<br>");
-  else div.textContent = text;
+  var empty = document.getElementById("ai-empty");
+  if (empty) empty.remove();
+  var div = document.createElement("div");
+  div.className = "ai-bubble " + role;
+  if (role === "assistant") {
+    div.innerHTML = typeof marked !== "undefined" ? marked.parse(text) : text.replace(/\n/g,"<br>");
+  } else {
+    div.textContent = text;
+  }
   aiMessages.appendChild(div);
   aiMessages.scrollTop = aiMessages.scrollHeight;
   return div;
 }
 
-async function sendAiMessage() {
-  const text = aiInput.value.trim();
+function sendAiMessage() {
+  var text = aiInput.value.trim();
   if (!text) return;
   aiInput.value = ""; aiInput.style.height = "auto";
   appendAiBubble("user", text);
+  // Build memory (history without the message we're about to send)
+  var memory = aiHistory.slice();
   aiHistory.push({ role: "user", content: text });
-  const thinking = appendAiBubble("assistant", "…");
-  try {
-    const res  = await fetch(AI_URL, {
-      method: "POST",
-      headers: AUTH_HEADERS,
-      body: JSON.stringify({ messages: aiHistory })
+  var thinking = appendAiBubble("assistant", "…");
+  fetch(AI_URL, {
+    method: "POST",
+    headers: HDRS,
+    body: JSON.stringify({ message: text, memory: memory })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var reply = data.reply || data.content || data.message || "Sorry, no response.";
+      thinking.innerHTML = typeof marked !== "undefined" ? marked.parse(reply) : reply.replace(/\n/g,"<br>");
+      aiHistory.push({ role: "assistant", content: reply });
+    })
+    .catch(function(e) {
+      thinking.textContent = "Network error: " + e.message;
     });
-    const data = await res.json();
-    const reply = data.reply || data.content || data.message || data.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
-    thinking.innerHTML = typeof marked !== "undefined" ? marked.parse(reply) : reply.replace(/\n/g,"<br>");
-    aiHistory.push({ role: "assistant", content: reply });
-  } catch(e) {
-    thinking.textContent = "Network error: " + e.message;
-  }
 }
 
-document.getElementById("ai-send-btn")?.addEventListener("click", sendAiMessage);
-aiInput?.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } });
-aiInput?.addEventListener("input", function() { this.style.height = "auto"; this.style.height = Math.min(this.scrollHeight, 120) + "px"; });
+document.getElementById("ai-send-btn") && document.getElementById("ai-send-btn").addEventListener("click", sendAiMessage);
+aiInput && aiInput.addEventListener("keydown", function(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } });
+aiInput && aiInput.addEventListener("input", function() { this.style.height = "auto"; this.style.height = Math.min(this.scrollHeight, 120) + "px"; });
 
-// ── GAMES ──────────────────────────────────────────────
-const GAMES = [
-  { name: "2048",        icon: "🔢", tag: "Puzzle",   url: "https://play2048.co/" },
-  { name: "Snake",       icon: "🐍", tag: "Classic",  url: "https://www.google.com/fbx?fbx=snake_arcade" },
-  { name: "Sudoku",      icon: "🧩", tag: "Logic",    url: "https://sudoku.com/" },
-  { name: "Chess",       icon: "♟️",  tag: "Strategy", url: "https://www.chess.com/play/computer" },
-  { name: "Wordle",      icon: "📝", tag: "Word",     url: "https://www.nytimes.com/games/wordle/index.html" },
-  { name: "Pac-Man",     icon: "👻", tag: "Arcade",   url: "https://www.google.com/logos/2010/pacman10-i.html" },
-  { name: "Minesweeper", icon: "💣", tag: "Classic",  url: "https://minesweeper.online/" },
-  { name: "Tetris",      icon: "🧱", tag: "Arcade",   url: "https://jstris.jezevec10.com/" },
-  { name: "Crossword",   icon: "🔠", tag: "Word",     url: "https://www.nytimes.com/crosswords" },
-  { name: "Flappy Bird", icon: "🐦", tag: "Arcade",   url: "https://flappybird.io/" },
+// ── GAMES (360's own games + classics) ─────────────────
+var GAMES = [
+  { name: "360Fish",          icon: "🐟", tag: "360 Original", url: "https://beta.360-search.com/games/360Fish.html" },
+  { name: "Space Glider",     icon: "🚀", tag: "360 Original", url: "https://beta.360-search.com/games/spaceGlider.html" },
+  { name: "Balloon Blitz TD", icon: "🎈", tag: "360 Original", url: "https://beta.360-search.com/games/BlitzTowerDefense.html" },
+  { name: "Penguin Knockout", icon: "🐧", tag: "360 Original", url: "https://beta.360-search.com/games/PenguinKnockout.html" },
+  { name: "NYC Dream",        icon: "🌆", tag: "360 Original", url: "https://beta.360-search.com/games/nyc_dream.html" },
+  { name: "Minesweeper",      icon: "💣", tag: "360 Original", url: "https://beta.360-search.com/games/minesweeper.html" },
+  { name: "Starfall RNG",     icon: "⭐", tag: "360 Original", url: "https://beta.360-search.com/games/starfallrng.html" },
+  { name: "Angel RNG",        icon: "😇", tag: "360 Original", url: "https://beta.360-search.com/games/angelrng.html" },
+  { name: "2048",             icon: "🔢", tag: "Puzzle",       url: "https://play2048.co/" },
+  { name: "Chess",            icon: "♟️",  tag: "Strategy",     url: "https://www.chess.com/play/computer" },
+  { name: "Wordle",           icon: "📝", tag: "Word",         url: "https://www.nytimes.com/games/wordle/index.html" },
+  { name: "Tetris",           icon: "🧱", tag: "Arcade",       url: "https://jstris.jezevec10.com/" },
 ];
 (function() {
-  const grid = document.getElementById("games-grid");
+  var grid = document.getElementById("games-grid");
   if (!grid) return;
-  grid.innerHTML = GAMES.map(g => `
-    <div class="game-card" onclick="openIframe('${g.url}','${g.name}')">
-      <span class="game-card-icon">${g.icon}</span>
-      <span class="game-card-name">${g.name}</span>
-      <span class="game-card-tag">${g.tag}</span>
-    </div>`).join("");
+  grid.innerHTML = GAMES.map(function(g) {
+    return '<div class="game-card" onclick="openIframe(\'' + escHtml(g.url) + '\',\'' + escHtml(g.name) + '\')"><span class="game-card-icon">' + g.icon + '</span><span class="game-card-name">' + escHtml(g.name) + '</span><span class="game-card-tag">' + escHtml(g.tag) + '</span></div>';
+  }).join("");
 })();
 
 // ── IFRAME VIEWER ──────────────────────────────────────
-const iframeViewer = document.getElementById("iframe-viewer");
-const iframeFrame  = document.getElementById("iframe-frame");
-const iframeTitle  = document.getElementById("iframe-title");
+var iframeViewer = document.getElementById("iframe-viewer");
+var iframeFrame  = document.getElementById("iframe-frame");
+var iframeTitle  = document.getElementById("iframe-title");
 
 function openIframe(url, title) {
   iframeTitle.textContent = title || "Loading…";
@@ -1207,19 +1156,18 @@ function openIframe(url, title) {
 }
 function closeIframe() {
   iframeViewer.classList.remove("open");
-  setTimeout(() => { iframeFrame.src = ""; }, 350);
+  setTimeout(function() { iframeFrame.src = ""; }, 350);
 }
-document.getElementById("iframe-close-btn")?.addEventListener("click", closeIframe);
+document.getElementById("iframe-close-btn") && document.getElementById("iframe-close-btn").addEventListener("click", closeIframe);
 
-// ── BACK BUTTON ────────────────────────────────────────
-document.addEventListener("backbutton", e => {
+// ── BACK BUTTON (Android hardware) ─────────────────────
+document.addEventListener("backbutton", function(e) {
   e.preventDefault();
   if (iframeViewer.classList.contains("open")) { closeIframe(); return; }
-  if (authSheet.classList.contains("open"))    { closeAuth(); return; }
-  const featurePages = ["weather","news","stocks","translator","chat","shortener"];
-  if (featurePages.includes(currentPage))      { navigateTo("home"); return; }
-  if (currentPage !== "home")                  { navigateTo("home"); return; }
-  if (typeof navigator.app !== "undefined")    navigator.app.exitApp();
+  if (authSheet && authSheet.classList.contains("open")) { closeAuth(); return; }
+  var featurePages = ["weather","news","stocks","translator","chat","shortener"];
+  if (featurePages.indexOf(currentPage) > -1 || currentPage !== "home") { navigateTo("home"); return; }
+  if (typeof navigator.app !== "undefined") navigator.app.exitApp();
 }, false);
 </script>
 </body>
