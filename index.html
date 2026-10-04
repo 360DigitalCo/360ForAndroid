@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>360</title>
+<script src="assets/js/supabase.min.js"></script>
+<style>
+  :root{
+    --a:#3b82f6; --a2:#06b6d4; --bg:#f5f6fa; --card:#fff; --txt:#111827; --mut:#6b7280; --border:rgba(15,23,42,.08);
+    --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  }
+  body.dark{ --bg:#0b0f1a; --card:#151b2b; --txt:#f3f4f6; --mut:#9aa3b5; --border:rgba(255,255,255,.08); }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;}
+  #topbar{padding:calc(var(--sat) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg);flex-shrink:0;}
+  #topbar .brand{font-weight:800;font-size:18px;background:linear-gradient(120deg,var(--a),var(--a2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  #topbar .spacer{flex:1;}
+  .icon-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--card);color:var(--txt);display:flex;align-items:center;justify-content:center;}
+  #views{flex:1;overflow:hidden;position:relative;}
+  .view{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(90px + var(--sab));opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .18s,transform .18s;}
+  .view.active{opacity:1;pointer-events:auto;transform:none;}
+
+  #nav{position:fixed;left:0;right:0;bottom:0;padding-bottom:var(--sab);background:var(--card);border-top:1px solid var(--border);display:flex;z-index:50;}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 8px;background:none;border:none;color:var(--mut);font-size:10.5px;font-weight:600;font-family:inherit;}
+  .nav-btn.active{color:var(--a);}
+  .nav-btn svg{width:21px;height:21px;}
+
+  .search-bar{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:999px;padding:11px 16px;border:1px solid var(--border);margin:6px 0 16px;}
+  .search-bar input{flex:1;border:none;background:none;outline:none;font-size:15px;color:var(--txt);font-family:inherit;}
+  .search-bar svg{flex-shrink:0;color:var(--mut);}
+
+  .weather-card{background:linear-gradient(120deg,var(--a),var(--a2));border-radius:18px;padding:18px;color:#fff;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+  .weather-temp{font-size:34px;font-weight:800;}
+  .weather-loc{font-size:12px;opacity:.9;}
+  .weather-desc{font-size:13px;opacity:.9;margin-top:2px;}
+
+  .apps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px;}
+  .app-tile{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;font-family:inherit;color:var(--txt);}
+  .app-tile-icon{width:52px;height:52px;border-radius:16px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .app-tile span{font-size:10.5px;font-weight:600;text-align:center;}
+
+  .result-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;}
+  .result-card a{color:var(--a);text-decoration:none;font-weight:700;font-size:14.5px;}
+  .result-card .url{font-size:11.5px;color:var(--mut);margin-bottom:3px;}
+  .result-card .snip{font-size:13px;color:var(--mut);margin-top:4px;line-height:1.5;}
+
+  .section-label{font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 10px;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--mut);}
+  .empty-state .big{font-size:40px;margin-bottom:10px;}
+
+  .mail-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:8px;}
+  .mail-item .from{font-weight:700;font-size:13.5px;}
+  .mail-item .subj{font-size:13px;margin-top:2px;}
+  .mail-item .prev{font-size:12px;color:var(--mut);margin-top:3px;}
+
+  .chat-bubble{max-width:82%;padding:11px 14px;border-radius:16px;margin-bottom:10px;font-size:14px;line-height:1.5;}
+  .chat-bubble.user{background:var(--a);color:#fff;margin-left:auto;border-bottom-right-radius:4px;}
+  .chat-bubble.ai{background:var(--card);border:1px solid var(--border);border-bottom-left-radius:4px;}
+  #ai-input-row{position:fixed;left:0;right:0;bottom:calc(64px + var(--sab));background:var(--bg);padding:8px 16px;display:flex;gap:8px;}
+  #ai-input-row input{flex:1;border-radius:999px;border:1px solid var(--border);background:var(--card);padding:11px 16px;font-size:14px;color:var(--txt);font-family:inherit;outline:none;}
+  #ai-input-row button{width:42px;height:42px;border-radius:50%;border:none;background:var(--a);color:#fff;flex-shrink:0;}
+
+  .skel{background:linear-gradient(90deg,var(--border) 25%,rgba(120,120,120,.15) 37%,var(--border) 63%);background-size:400% 100%;animation:sk 1.3s ease infinite;border-radius:10px;height:64px;margin-bottom:10px;}
+  @keyframes sk{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+  .auth-gate{text-align:center;padding:40px 24px;}
+  .auth-gate .mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--a),var(--a2));margin:0 auto 16px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;}
+  .auth-gate h2{font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-.02em;}
+  .auth-gate p{color:var(--mut);font-size:13.5px;margin-bottom:20px;}
+  .btn{padding:12px 22px;border-radius:12px;border:none;background:linear-gradient(120deg,var(--a),var(--a2));color:#fff;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;}
+  .btn-full{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;}
+  .btn-outline{background:var(--card);border:1.5px solid var(--border);color:var(--txt);margin-bottom:10px;}
+  .field{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--txt);font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;box-sizing:border-box;}
+  .field:focus{border-color:var(--a);}
+  .auth-divider{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12px;font-weight:600;margin:10px 0;}
+  .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--border);}
+  .auth-err{color:#ef4444;font-size:12.5px;margin-top:8px;min-height:16px;}
+  .auth-toggle{margin-top:14px;font-size:13px;color:var(--mut);}
+  .auth-toggle span{color:var(--a);font-weight:700;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <span class="brand">360</span>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="theme-btn">🌓</button>
+  </div>
+  <div id="views">
+    <div class="view active" id="view-home"></div>
+    <div class="view" id="view-mail"></div>
+    <div class="view" id="view-ai"></div>
+    <div class="view" id="view-more"></div>
+  </div>
+  <div id="nav">
+    <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</button>
+    <button class="nav-btn" data-view="mail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>Mail</button>
+    <button class="nav-btn" data-view="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 1 0 5 5"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.2 16.2l2.8 2.8M2 12h4M18 12h4"/></svg>AI</button>
+    <button class="nav-btn" data-view="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>More</button>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://wiswfpfsjiowtrdyqpxy.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpc3dmcGZzamlvd3RyZHlxcHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzg4OTcsImV4cCI6MjA4MzkxNDg5N30.z_4FtM2c8UwgrRlafPYjolQuod4IoHQats95XHio1zM';
+const sb = supabase.createClient(SB_URL, SB_ANON);
+const H = { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON };
+let currentUser = null, currentSession = null, theme = 'light';
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function $(id){return document.getElementById(id);}
+
+/* ── theme ── */
+theme = localStorage.getItem('360m_theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+document.body.classList.toggle('dark', theme==='dark');
+$('theme-btn').addEventListener('click', ()=>{
+  theme = theme==='dark'?'light':'dark';
+  document.body.classList.toggle('dark', theme==='dark');
+  localStorage.setItem('360m_theme', theme);
+});
+
+/* ── nav ── */
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>switchView(btn.dataset.view));
+});
+function switchView(name){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+name));
+  if(name==='mail') loadMailTab();
+  if(name==='ai') loadAiTab();
+  if(name==='more') loadMoreTab();
+}
+
+/* ── auth ── */
+async function initAuth(){
+  const {data:{session}} = await sb.auth.getSession();
+  currentSession = session; currentUser = session?.user ?? null;
+  renderHome();
+}
+sb.auth.onAuthStateChange((_e, session)=>{
+  currentSession = session; currentUser = session?.user ?? null;
+  renderHome();
+  const active = document.querySelector('.view.active')?.id;
+  if(active==='view-mail') loadMailTab();
+  if(active==='view-more') loadMoreTab();
+});
+
+/* ── HOME / SEARCH ── */
+function renderHome(){
+  const v = $('view-home');
+  v.innerHTML = `
+    <div class="search-bar" id="home-search-bar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="home-search-input" placeholder="Search the web…" />
+    </div>
+    <div id="weather-slot"></div>
+    <div class="section-label">Quick access</div>
+    <div class="apps-grid" id="quick-apps"></div>
+    <div id="home-results"></div>
+  `;
+  $('home-search-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doSearch(e.target.value.trim()); });
+  renderQuickApps();
+  loadWeather();
+}
+
+function renderQuickApps(){
+  const apps = [
+    {icon:'🔍', label:'Search', url:'https://360-search.com/search.html'},
+    {icon:'✉️', label:'Mail', view:'mail'},
+    {icon:'🤖', label:'AI', view:'ai'},
+    {icon:'🗺️', label:'Maps', url:'https://360-search.com/apps/360Maps.html'},
+    {icon:'🎬', label:'Vids', url:'https://360-search.com/apps/360vids.html'},
+    {icon:'🎵', label:'Music', url:'https://360-search.com/apps/360Music.html'},
+    {icon:'📝', label:'Notes', url:'https://360-search.com/apps/360Notes.html'},
+    {icon:'🎨', label:'Canvas', url:'https://360-search.com/apps/360Canvas.html'},
+  ];
+  $('quick-apps').innerHTML = apps.map(a=>`<button class="app-tile" data-url="${a.url||''}" data-view="${a.view||''}"><div class="app-tile-icon">${a.icon}</div><span>${a.label}</span></button>`).join('');
+  $('quick-apps').querySelectorAll('.app-tile').forEach(el=>el.addEventListener('click', ()=>{
+    if(el.dataset.view) switchView(el.dataset.view);
+    else if(el.dataset.url) location.href = el.dataset.url;
+  }));
+}
+
+async function loadWeather(){
+  const slot = $('weather-slot');
+  slot.innerHTML = `<div class="skel" style="height:88px;"></div>`;
+  if(!navigator.geolocation){ slot.innerHTML=''; return; }
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      const {latitude:lat, longitude:lon} = pos.coords;
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`);
+      const data = await res.json();
+      const t = Math.round(data.current?.temperature_2m ?? 0);
+      const code = data.current?.weather_code ?? 0;
+      const desc = weatherDesc(code);
+      let place = 'Your location';
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+        const geoData = await geoRes.json();
+        place = geoData.address?.city || geoData.address?.town || geoData.address?.county || place;
+      } catch(e){}
+      slot.innerHTML = `<div class="weather-card">
+        <div><div class="weather-temp">${t}°</div><div class="weather-desc">${esc(desc)}</div></div>
+        <div class="weather-loc">📍 ${esc(place)}</div>
+      </div>`;
+    }catch(e){ slot.innerHTML=''; }
+  }, ()=>{ slot.innerHTML=''; }, { timeout: 8000 });
+}
+function weatherDesc(code){
+  if(code===0) return 'Clear sky';
+  if([1,2,3].includes(code)) return 'Partly cloudy';
+  if([45,48].includes(code)) return 'Foggy';
+  if([51,53,55,61,63,65].includes(code)) return 'Rainy';
+  if([71,73,75,77].includes(code)) return 'Snowy';
+  if([95,96,99].includes(code)) return 'Thunderstorms';
+  return 'Mixed conditions';
+}
+
+async function doSearch(q){
+  if(!q) return;
+  const box = $('home-results');
+  box.innerHTML = `<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
+  try{
+    const res = await fetch(`${SB_URL}/functions/v1/search`, {
+      method:'POST', headers:{'Content-Type':'application/json', ...H},
+      body: JSON.stringify({ q, tab:'web' }),
+    });
+    const data = await res.json();
+    const results = data.web || [];
+    if(!results.length){ box.innerHTML = `<div class="empty-state"><div class="big">🔎</div>No results found</div>`; return; }
+    box.innerHTML = results.map(r=>{
+      let host=''; try{ host=new URL(r.url).hostname.replace('www.',''); }catch(e){}
+      return `<div class="result-card">
+        <div class="url">${esc(host)}</div>
+        <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>
+        ${r.desc?`<div class="snip">${esc(r.desc)}</div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    box.innerHTML = `<div class="empty-state"><div class="big">📡</div>Couldn't load results — check your connection.</div>`;
+  }
+}
+
+/* ── MAIL ── */
+async function loadMailTab(){
+  const v = $('view-mail');
+  if(!currentUser){ v.innerHTML = authGateHtml('Sign in to check your 360Mail inbox.'); wireAuthGate(v); return; }
+  v.innerHTML = `<div class="section-label">Inbox</div><div id="mail-list"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>`;
+  const { data: profile } = await sb.from('profiles').select('mail_address').eq('id', currentUser.id).maybeSingle();
+  const mailAddress = profile?.mail_address;
+  if(!mailAddress){ $('mail-list').innerHTML = `<div class="empty-state"><div class="big">✉️</div>No 360Mail address set up yet.</div>`; return; }
+  const { data, error } = await sb.from('inbox_readable').select('*').eq('owner_email', mailAddress).order('received_at', { ascending:false }).limit(30);
+  if(error || !data?.length){ $('mail-list').innerHTML = `<div class="empty-state"><div class="big">📭</div>No messages yet.</div>`; return; }
+  $('mail-list').innerHTML = data.map(m=>`<div class="mail-item">
+    <div class="from">${esc(m.from_addr || m.owner_email)}</div>
+    <div class="subj">${esc(m.subject || '(no subject)')}</div>
+    <div class="prev">${esc((m.body_text||'').slice(0,80))}</div>
+  </div>`).join('');
+}
+
+/* ── AI ── */
+let aiHistory = [];
+function loadAiTab(){
+  const v = $('view-ai');
+  if(v.dataset.loaded) return;
+  v.dataset.loaded = '1';
+  v.innerHTML = `<div class="section-label">360 AI</div><div id="ai-messages"></div>`;
+  document.body.insertAdjacentHTML('beforeend', `<div id="ai-input-row"><input id="ai-input" placeholder="Ask anything…" /><button id="ai-send">➤</button></div>`);
+  $('ai-send').addEventListener('click', sendAiMessage);
+  $('ai-input').addEventListener('keydown', e=>{ if(e.key==='Enter') sendAiMessage(); });
+}
+async function sendAiMessage(){
+  const input = $('ai-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+  const box = $('ai-messages');
+  box.insertAdjacentHTML('beforeend', `<div class="chat-bubble user">${esc(msg)}</div>`);
+  const aiId = 'ai-'+Date.now();
+  box.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai" id="${aiId}">…</div>`);
+  box.scrollIntoView({block:'end'});
+  aiHistory.push({role:'user', content: msg});
+  try{
+    const res = await fetch(`${SB_URL}/functions/v1/ai-chatbot`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ message: msg, memory: aiHistory.slice(-20) }),
+    });
+    if(!res.body){ $(aiId).textContent = 'No response.'; return; }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf='', textBuf='';
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += decoder.decode(value, {stream:true});
+      const lines = buf.split('\n'); buf = lines.pop()||'';
+      for(const line of lines){
+        if(!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if(!payload) continue;
+        let evt; try{ evt = JSON.parse(payload); }catch(e){ continue; }
+        if(evt.type==='text'){ textBuf += evt.delta; $(aiId).textContent = textBuf; box.scrollIntoView({block:'end'}); }
+      }
+    }
+    aiHistory.push({role:'assistant', content: textBuf});
+  }catch(e){ $(aiId).textContent = "Couldn't reach 360 AI — check your connection."; }
+}
+
+/* ── MORE ── */
+function loadMoreTab(){
+  const v = $('view-more');
+  if(currentUser){
+    v.innerHTML = `<div class="section-label">Account</div>
+      <div class="result-card">${esc(currentUser.email||'')}</div>
+      <button class="btn" id="signout-btn" style="width:100%;margin-top:10px;">Sign out</button>
+      <div class="section-label">More apps</div>
+      <div class="apps-grid" id="more-apps"></div>`;
+    $('signout-btn').addEventListener('click', async ()=>{ await sb.auth.signOut(); switchView('home'); });
+  } else {
+    v.innerHTML = authGateHtml('Sign in to sync your account across 360.') + `<div class="section-label">More apps</div><div class="apps-grid" id="more-apps"></div>`;
+    wireAuthGate(v);
+  }
+  const apps = [
+    {icon:'📰', label:'News', url:'https://360-search.com/search.html?tab=news'},
+    {icon:'🛒', label:'Shopping', url:'https://360-search.com/search.html?tab=shopping'},
+    {icon:'📄', label:'Docs', url:'https://360-search.com/apps/360Docs.html'},
+    {icon:'✅', label:'To-Do', url:'https://360-search.com/apps/360Do.html'},
+  ];
+  const grid = $('more-apps');
+  if(grid){
+    grid.innerHTML = apps.map(a=>`<button class="app-tile" data-url="${a.url}"><div class="app-tile-icon">${a.icon}</div><span>${a.label}</span></button>`).join('');
+    grid.querySelectorAll('.app-tile').forEach(el=>el.addEventListener('click', ()=>location.href=el.dataset.url));
+  }
+}
+
+/* ── OAuth ──
+   Google refuses to run inside an embedded WebView, so sign-in is handed to the
+   system browser. Supabase then redirects to three60app://auth-callback#access_token=…
+   which MainActivity receives and passes to handleOAuthCallback(). */
+const REDIRECT = 'three60app://auth-callback';
+
+async function startOAuth(provider, errEl){
+  const { data, error } = await sb.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: REDIRECT, skipBrowserRedirect: true }
+  });
+  if(error || !data?.url){ if(errEl) errEl.textContent = error?.message || 'Could not start sign-in.'; return; }
+  if(window.Android && Android.openUrl) Android.openUrl(data.url);
+  else location.href = data.url;
+}
+
+window.handleOAuthCallback = async function(callbackUrl){
+  try{
+    const h = callbackUrl.indexOf('#'), q = callbackUrl.indexOf('?');
+    const raw = h >= 0 ? callbackUrl.slice(h+1)
+              : q >= 0 ? callbackUrl.slice(q+1) : '';
+    const p = new URLSearchParams(raw);
+    const fail = p.get('error_description') || p.get('error');
+    if(fail){ if(window.Android) Android.showToast(fail); return; }
+    const access_token = p.get('access_token'), refresh_token = p.get('refresh_token');
+    if(!access_token || !refresh_token) return;
+    const { error } = await sb.auth.setSession({ access_token, refresh_token });
+    if(error) throw error;
+    if(window.Android) Android.showToast('Signed in');
+  }catch(e){
+    console.error('OAuth callback', e);
+    if(window.Android) Android.showToast('Sign-in failed. Please try again.');
+  }
+};
+
+/* ── shared auth gate ── */
+function authGateHtml(msg) {
+  return `<div class="auth-gate">
+    <div class="mark">360</div>
+    <h2>Sign in to 360</h2>
+    <p>${esc(msg)}</p>
+
+    <button class="btn btn-full btn-outline" id="gate-google" aria-label="Sign in with Google">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <button class="btn btn-full btn-outline" id="gate-github" aria-label="Sign in with GitHub">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+      </svg>
+      Continue with GitHub
+    </button>
+
+    <div class="auth-divider">or</div>
+
+    <input class="field" id="gate-email" type="email" placeholder="Email" autocomplete="email" aria-label="Email address"/>
+    <input class="field" id="gate-password" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"/>
+    <button class="btn btn-full" id="gate-signin" style="margin-bottom:0;">Sign in</button>
+    <div class="auth-err" id="gate-err" role="alert"></div>
+    <div class="auth-toggle">No account? <span id="gate-signup">Sign up free</span></div>
+  </div>`;
+}
+
+function wireAuthGate(v) {
+  v.querySelector('#gate-google')?.addEventListener('click', () => startOAuth('google', v.querySelector('#gate-err')));
+  v.querySelector('#gate-github')?.addEventListener('click', () => startOAuth('github', v.querySelector('#gate-err')));
+  v.querySelector('#gate-signin')?.addEventListener('click', async () => {
+    const email    = v.querySelector('#gate-email')?.value.trim();
+    const password = v.querySelector('#gate-password')?.value;
+    const errEl    = v.querySelector('#gate-err');
+    if (!email || !password) { if (errEl) errEl.textContent = 'Enter your email and password.'; return; }
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error && errEl) errEl.textContent = error.message;
+  });
+  v.querySelector('#gate-signup')?.addEventListener('click', () => {
+    v.innerHTML = `<div class="auth-gate">
+      <div class="mark">360</div>
+      <h2>Create account</h2>
+      <p>Free, private, no ads.</p>
+      <input class="field" id="su-email" type="email" placeholder="Email" aria-label="Email"/>
+      <input class="field" id="su-pass" type="password" placeholder="Password" aria-label="Password"/>
+      <button class="btn btn-full" id="su-btn">Create account</button>
+      <div class="auth-err" id="gate-err" role="alert"></div>
+      <div class="auth-toggle"><span id="su-back">Back to sign in</span></div>
+    </div>`;
+    v.querySelector('#su-btn').addEventListener('click', async () => {
+      const email    = v.querySelector('#su-email').value.trim();
+      const password = v.querySelector('#su-pass').value;
+      const errEl    = v.querySelector('#gate-err');
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) { errEl.textContent = error.message; return; }
+      errEl.style.color = '#16a34a';
+      errEl.textContent = '✓ Check your email to confirm your account.';
+    });
+    v.querySelector('#su-back').addEventListener('click', () => {
+      v.innerHTML = authGateHtml('Sign in to access your 360 account.');
+      wireAuthGate(v);
+    });
+  });
+}
+
+initAuth();
+</script>
+</body>
+</html>
