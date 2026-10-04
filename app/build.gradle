@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.search360.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.search360.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 4
+        versionName "4.0.0"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+            // Debug-signed so the APK installs when sideloading. Swap in a real
+            // signingConfig before any store upload.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    // A lint warning must never be the reason a sideload build fails.
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+// The native UI uses only the Android framework: no AndroidX, no WebView, no third-party libraries.
+dependencies {
+}
