@@ -73,7 +73,7 @@ final class MapScreen extends Screen {
             if (e != null) { toast(msg(e)); return; }
             double la = o.optDouble("lat"), lo = o.optDouble("lon");
             map.setView(la, lo, 14); map.setMarker(la, lo);
-            info(o.optString("display_name"));
+            info(J.s(o, "display_name"));
         });
     }
     @Override void onDestroy() { if (map != null) map.shutdown(); super.onDestroy(); }

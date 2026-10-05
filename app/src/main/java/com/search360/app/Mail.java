@@ -53,15 +53,26 @@ final class Fmt {
 }
 
 final class Mail {
-    /** The signed-in user's 360Mail address (cached). */
+    /** Same rule as the website: profile.mail_address, else username@360-search.com, else the login email. */
+    static String resolveAddress(String mailAddress, String username, String loginEmail) {
+        if (mailAddress != null && !mailAddress.trim().isEmpty() && !mailAddress.equals("null")) return mailAddress.trim();
+        if (username != null && !username.trim().isEmpty() && !username.equals("null")) return username.trim().toLowerCase(java.util.Locale.US).replaceAll("\\s+", "") + "@360-search.com";
+        return loginEmail == null || loginEmail.isEmpty() ? null : loginEmail.toLowerCase(java.util.Locale.US);
+    }
+
+    /** The signed-in user's mailbox address (cached). */
     static void address(final Screen s, final Http.Cb<String> cb) {
         final String cached = Store.get("mailAddr", null);
         if (cached != null && !cached.isEmpty()) { cb.done(cached, null); return; }
         s.async(() -> {
-            JSONArray r = Api.rest("GET", "profiles?select=mail_address&id=eq." + Http.enc(Auth.userId) + "&limit=1", null, true);
-            String a = r.length() > 0 ? r.getJSONObject(0).optString("mail_address", "") : "";
-            if (!a.isEmpty() && !"null".equals(a)) Store.put("mailAddr", a);
-            return a.isEmpty() || "null".equals(a) ? null : a;
+            String ma = null, un = null;
+            try {
+                JSONArray r = Api.rest("GET", "profiles?select=mail_address,username&id=eq." + Http.enc(Auth.userId) + "&limit=1", null, true);
+                if (r.length() > 0) { JSONObject p = r.getJSONObject(0); ma = J.s(p, "mail_address"); un = J.s(p, "username"); }
+            } catch (Exception ignored) { /* profile not readable: fall back to the login email like the website */ }
+            String a = resolveAddress(ma, un, Auth.email);
+            if (a != null) Store.put("mailAddr", a);
+            return a;
         }, cb);
     }
     static boolean encrypted(JSONObject m) {
@@ -77,10 +88,10 @@ final class Mail {
     static int threat(JSONObject m) {
         if (m.optBoolean("virus_detected")) return 2;
         int score = 0;
-        String text = m.optString("subject") + " " + m.optString("body_text");
+        String text = J.s(m, "subject") + " " + J.s(m, "body_text");
         if (PHISH.matcher(text).find()) score += 30;
         JSONArray at = m.optJSONArray("attachments");
-        if (at != null) for (int i = 0; i < at.length(); i++) { JSONObject a = at.optJSONObject(i); if (a != null && EXEC.matcher(a.optString("filename")).find()) score += 60; }
+        if (at != null) for (int i = 0; i < at.length(); i++) { JSONObject a = at.optJSONObject(i); if (a != null && EXEC.matcher(J.s(a, "filename")).find()) score += 60; }
         if (m.optBoolean("spf_fail") || m.optBoolean("dkim_fail") || m.optBoolean("dmarc_fail")) score += 25;
         return score >= 60 ? 2 : score >= 25 ? 1 : 0;
     }
@@ -91,6 +102,7 @@ final class MailScreen extends Screen {
     private LinearLayout list;
     private final List<JSONObject> all = new ArrayList<>();
     private String folder = "inbox", addr;
+    private EditText query;
     private boolean loaded;
 
     @Override View build() {
@@ -113,7 +125,7 @@ final class MailScreen extends Screen {
         LinearLayout root = Ui.vbox(c);
         LinearLayout top = Ui.hbox(c);
         top.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(10), Ui.dp(4));
-        final String[][] f = {{"inbox", "Inbox"}, {"sent", "Sent"}, {"starred", "Starred"}};
+        final String[][] f = {{"inbox", "Inbox"}, {"sent", "Sent"}, {"starred", "Starred"}, {"scheduled", "Scheduled"}};
         final LinearLayout chips = Ui.hbox(c);
         for (final String[] x : f) {
             TextView ch = Ui.chip(c, x[1], x[0].equals(folder));
@@ -124,9 +136,20 @@ final class MailScreen extends Screen {
             });
             chips.addView(ch);
         }
-        top.addView(chips, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
+        android.widget.HorizontalScrollView chipScroll = new android.widget.HorizontalScrollView(c);
+        chipScroll.setHorizontalScrollBarEnabled(false);
+        chipScroll.addView(chips);
+        top.addView(chipScroll, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
         top.addView(Ui.iconButton(c, "refresh", v -> load(true)));
         root.addView(top);
+        query = Ui.input(c, "Search mail");
+        query.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 14, 4, 14, 6));
+        query.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence x, int a1, int b1, int c1) { }
+            public void onTextChanged(CharSequence x, int a1, int b1, int c1) { if (loaded) paint(); }
+            public void afterTextChanged(android.text.Editable x) { }
+        });
+        root.addView(query);
         list = Ui.vbox(c);
         list.setPadding(Ui.dp(10), 0, Ui.dp(10), Ui.dp(90));
         android.widget.ScrollView sv = new android.widget.ScrollView(c);
@@ -153,12 +176,12 @@ final class MailScreen extends Screen {
         Mail.address(this, (ad, e) -> {
             if (ad == null) {
                 list.removeAllViews();
-                list.addView(Ui.state(c, "mail", e != null ? "Couldn't load your mailbox" : "No 360Mail address yet", e != null ? msg(e) : "Create your @360-search.com address on the 360 website, then it appears here."));
+                list.addView(errorState(e != null ? "Couldn't load your mailbox" : "No mailbox found", e != null ? msg(e) : "Your account has no email address on file."));
                 return;
             }
             addr = ad;
             async(() -> Api.rest("GET", "inbox_readable?select=*&owner_email=eq." + Http.enc(addr) + "&order=received_at.desc&limit=100", null, true), (rows, err) -> {
-                if (err != null) { list.removeAllViews(); list.addView(Ui.state(c, "alert", "Couldn't load mail", msg(err))); return; }
+                if (err != null) { list.removeAllViews(); list.addView(errorState("Couldn't load mail", msg(err))); return; }
                 all.clear();
                 for (int i = 0; i < rows.length(); i++) all.add(rows.optJSONObject(i));
                 loaded = true;
@@ -170,17 +193,35 @@ final class MailScreen extends Screen {
     private void paint() {
         list.removeAllViews();
         int unread = 0;
-        for (JSONObject m : all) if (!m.optBoolean("read") && "in".equals(m.optString("direction"))) unread++;
+        for (JSONObject m : all) if (!m.optBoolean("read") && "in".equals(J.s(m, "direction"))) unread++;
         a.setMailBadge(unread);
         int shown = 0;
         for (final JSONObject m : all) {
-            boolean in = "in".equals(m.optString("direction")), sched = "scheduled".equals(m.optString("status"));
-            boolean ok = folder.equals("inbox") ? in : folder.equals("sent") ? (!in && !sched) : m.optBoolean("starred");
+            boolean in = "in".equals(J.s(m, "direction")), sched = "scheduled".equals(J.s(m, "status"));
+            boolean ok = folder.equals("inbox") ? in : folder.equals("sent") ? (!in && !sched) : folder.equals("scheduled") ? (!in && sched) : m.optBoolean("starred");
             if (!ok) continue;
+            if (!matches(m)) continue;
             list.addView(row(m, in));
             shown++;
         }
-        if (shown == 0) list.addView(Ui.state(c, folder.equals("starred") ? "star" : "inbox", folder.equals("inbox") ? "Inbox is empty" : "Nothing here", folder.equals("inbox") ? "New messages appear here." : ""));
+        if (shown == 0) list.addView(Ui.state(c, folder.equals("starred") ? "star" : "inbox", query != null && query.getText().length() > 0 ? "No matches" : folder.equals("inbox") ? "Inbox is empty" : "Nothing here", folder.equals("inbox") ? "New messages appear here." : ""));
+    }
+
+    private boolean matches(JSONObject m) {
+        String q = query == null ? "" : query.getText().toString().trim().toLowerCase(java.util.Locale.US);
+        if (q.isEmpty() || Mail.encrypted(m)) return q.isEmpty();
+        return (J.s(m, "subject") + " " + J.s(m, "from_addr") + " " + J.s(m, "to_addr") + " " + J.s(m, "body_text")).toLowerCase(java.util.Locale.US).contains(q);
+    }
+
+    private View errorState(String title, String msg) {
+        LinearLayout l = Ui.vbox(c);
+        l.setGravity(Gravity.CENTER_HORIZONTAL);
+        l.addView(Ui.state(c, "alert", title, msg));
+        TextView retry = Ui.button(c, "Try again", 1);
+        retry.setLayoutParams(Ui.lp(Ui.WRAP, Ui.WRAP, 0, 0, 0, 0));
+        retry.setOnClickListener(v -> { Store.remove("mailAddr"); load(true); });
+        l.addView(retry);
+        return l;
     }
 
     private View row(final JSONObject m, boolean in) {
@@ -191,7 +232,7 @@ final class MailScreen extends Screen {
         r.setPadding(Ui.dp(6), Ui.dp(12), Ui.dp(6), Ui.dp(12));
         r.setBackground(Ui.ripple(null));
         r.setClickable(true);
-        String who = in ? m.optString("from_addr") : m.optString("to_addr");
+        String who = in ? J.s(m, "from_addr") : J.s(m, "to_addr");
         TextView av = Ui.text(c, Fmt.initials(who), 14, 0xFFFFFFFF, true);
         av.setGravity(Gravity.CENTER);
         av.setBackground(Ui.gradient(20));
@@ -203,13 +244,13 @@ final class MailScreen extends Screen {
         if (!unread) from.setTypeface(android.graphics.Typeface.DEFAULT);
         t.addView(from, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
         if (m.optBoolean("starred")) t.addView(Ui.icon(c, "star-fill", 14, 0xFFF59E0B), Ui.lp(Ui.dp(14), Ui.dp(14), 4, 0, 4, 0));
-        t.addView(Ui.text(c, Fmt.rel(m.optString("received_at")), 11.5f, Ui.MUT, false));
+        t.addView(Ui.text(c, Fmt.rel(J.s(m, "received_at")), 11.5f, Ui.MUT, false));
         b.addView(t);
-        String subj = enc ? "Encrypted message" : Auth.firstNonEmpty(m.optString("subject"), "(no subject)");
+        String subj = enc ? "Encrypted message" : Auth.firstNonEmpty(J.s(m, "subject"), "(no subject)");
         TextView sj = Ui.text(c, subj, 13.5f, Ui.TXT, unread);
         sj.setSingleLine(true); sj.setEllipsize(android.text.TextUtils.TruncateAt.END);
         b.addView(sj);
-        String pv = enc ? "End-to-end encrypted" : Rows.stripTags(Auth.firstNonEmpty(m.optString("body_text"), m.optString("body_html")));
+        String pv = enc ? "End-to-end encrypted" : Rows.stripTags(Auth.firstNonEmpty(J.s(m, "body_text"), J.s(m, "body_html")));
         TextView p = Ui.text(c, pv, 12.5f, Ui.MUT, false);
         p.setSingleLine(true); p.setEllipsize(android.text.TextUtils.TruncateAt.END);
         b.addView(p);
@@ -241,13 +282,13 @@ final class MailReadScreen extends Screen {
         try { m.put("starred", now); } catch (Exception ignored) { }
         ((android.widget.ImageView) btn.getChildAt(0)).setImageDrawable(Icons.drawable(c, now ? "star-fill" : "star", now ? 0xFFF59E0B : Ui.TXT));
         owner.changed();
-        async(() -> Api.rest("PATCH", "inbox?id=eq." + Http.enc(m.optString("id")), new JSONObject().put("starred", now), false), (r, e) -> { if (e != null) toast("Couldn't update star."); });
+        async(() -> Api.rest("PATCH", "inbox?id=eq." + Http.enc(J.s(m, "id")), new JSONObject().put("starred", now), false), (r, e) -> { if (e != null) toast("Couldn't update star."); });
     }
 
     private void confirmDelete() {
         new android.app.AlertDialog.Builder(a).setTitle("Delete message?").setMessage("This permanently removes the message.")
             .setNegativeButton("Cancel", null)
-            .setPositiveButton("Delete", (d, w) -> async(() -> Api.rest("DELETE", "inbox?id=eq." + Http.enc(m.optString("id")), null, false), (r, e) -> {
+            .setPositiveButton("Delete", (d, w) -> async(() -> Api.rest("DELETE", "inbox?id=eq." + Http.enc(J.s(m, "id")), null, false), (r, e) -> {
                 if (e != null) { toast("Couldn't delete."); return; }
                 owner.remove(m);
                 a.onBackPressed();
@@ -256,19 +297,19 @@ final class MailReadScreen extends Screen {
 
     @Override View build() {
         LinearLayout l = col();
-        final boolean in = "in".equals(m.optString("direction"));
+        final boolean in = "in".equals(J.s(m, "direction"));
         final boolean enc = Mail.encrypted(m);
-        TextView subj = Ui.text(c, enc ? "Encrypted message" : Auth.firstNonEmpty(m.optString("subject"), "(no subject)"), 21, Ui.TXT, true);
+        TextView subj = Ui.text(c, enc ? "Encrypted message" : Auth.firstNonEmpty(J.s(m, "subject"), "(no subject)"), 21, Ui.TXT, true);
         subj.setLineSpacing(0, 1.1f);
         l.addView(subj);
         LinearLayout who = Ui.hbox(c);
         who.setPadding(0, Ui.dp(14), 0, Ui.dp(14));
-        TextView av = Ui.text(c, Fmt.initials(in ? m.optString("from_addr") : m.optString("to_addr")), 15, 0xFFFFFFFF, true);
+        TextView av = Ui.text(c, Fmt.initials(in ? J.s(m, "from_addr") : J.s(m, "to_addr")), 15, 0xFFFFFFFF, true);
         av.setGravity(Gravity.CENTER); av.setBackground(Ui.gradient(22));
         who.addView(av, Ui.lp(Ui.dp(44), Ui.dp(44), 0, 0, 12, 0));
         LinearLayout nm = Ui.vbox(c);
-        nm.addView(Ui.text(c, in ? m.optString("from_addr") : "To: " + m.optString("to_addr"), 14.5f, Ui.TXT, true));
-        nm.addView(Ui.text(c, Fmt.full(m.optString("received_at")), 12, Ui.MUT, false));
+        nm.addView(Ui.text(c, in ? J.s(m, "from_addr") : "To: " + J.s(m, "to_addr"), 14.5f, Ui.TXT, true));
+        nm.addView(Ui.text(c, Fmt.full(J.s(m, "received_at")), 12, Ui.MUT, false));
         who.addView(nm);
         l.addView(who);
 
@@ -283,7 +324,7 @@ final class MailReadScreen extends Screen {
         if (enc) {
             l.addView(Ui.state(c, "lock", "Encrypted on another device", "This message is end-to-end encrypted with a key that lives on the device where you set up encryption. Open it there to read it."));
         } else {
-            String html = m.optString("body_html"), text = m.optString("body_text");
+            String html = J.s(m, "body_html"), text = J.s(m, "body_text");
             TextView body = Ui.text(c, "", 15.5f, Ui.TXT, false);
             body.setLineSpacing(0, 1.35f);
             body.setLinkTextColor(Ui.ACC);
@@ -297,7 +338,7 @@ final class MailReadScreen extends Screen {
             JSONArray at = m.optJSONArray("attachments");
             if (at != null && at.length() > 0) {
                 l.addView(Ui.label(c, "Attachments"));
-                for (int i = 0; i < at.length(); i++) { JSONObject x = at.optJSONObject(i); if (x != null) l.addView(Ui.text(c, x.optString("filename") + (Mail.EXEC.matcher(x.optString("filename")).find() ? "  (executable: be careful)" : ""), 13.5f, Ui.TXT, false)); }
+                for (int i = 0; i < at.length(); i++) { JSONObject x = at.optJSONObject(i); if (x != null) l.addView(Ui.text(c, J.s(x, "filename") + (Mail.EXEC.matcher(J.s(x, "filename")).find() ? "  (executable: be careful)" : ""), 13.5f, Ui.TXT, false)); }
                 l.addView(Ui.text(c, "Download attachments from the 360 website.", 11.5f, Ui.MUT, false));
             }
         }
@@ -306,15 +347,19 @@ final class MailReadScreen extends Screen {
         TextView reply = Ui.button(c, "Reply", 1), fwd = Ui.button(c, "Forward", 1);
         ((LinearLayout.LayoutParams) reply.getLayoutParams()).weight = 1f; ((LinearLayout.LayoutParams) reply.getLayoutParams()).width = 0; ((LinearLayout.LayoutParams) reply.getLayoutParams()).rightMargin = Ui.dp(8);
         ((LinearLayout.LayoutParams) fwd.getLayoutParams()).weight = 1f; ((LinearLayout.LayoutParams) fwd.getLayoutParams()).width = 0;
-        final String subjText = m.optString("subject");
-        reply.setOnClickListener(v -> a.push(new ComposeScreen(in ? m.optString("from_addr") : m.optString("to_addr"), "Re: " + subjText, "")));
-        fwd.setOnClickListener(v -> a.push(new ComposeScreen("", "Fwd: " + subjText, "\n\n--- Forwarded ---\nFrom: " + m.optString("from_addr") + "\n\n" + m.optString("body_text"))));
+        final String subjText = J.s(m, "subject");
+        reply.setOnClickListener(v -> a.push(new ComposeScreen(in ? J.s(m, "from_addr") : J.s(m, "to_addr"), "Re: " + subjText, "")));
+        fwd.setOnClickListener(v -> a.push(new ComposeScreen("", "Fwd: " + subjText, "\n\n--- Forwarded ---\nFrom: " + J.s(m, "from_addr") + "\n\n" + J.s(m, "body_text"))));
         if (!enc) { acts.addView(reply); acts.addView(fwd); l.addView(acts); }
 
+        if (in && m.optBoolean("self_destruct")) {
+            l.addView(Ui.text(c, "This message was set to self-destruct. It has been removed from your mailbox and will disappear when you leave.", 12, Ui.WARN, true), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 16, 0, 0));
+            async(() -> Api.rest("DELETE", "inbox?id=eq." + Http.enc(J.s(m, "id")), null, false), (r, e) -> { if (e == null) owner.remove(m); });
+        }
         if (in && !m.optBoolean("read")) {
             try { m.put("read", true); } catch (Exception ignored) { }
             owner.changed();
-            async(() -> Api.rest("PATCH", "inbox?id=eq." + Http.enc(m.optString("id")), new JSONObject().put("read", true), false), (r, e) -> { });
+            async(() -> Api.rest("PATCH", "inbox?id=eq." + Http.enc(J.s(m, "id")), new JSONObject().put("read", true), false), (r, e) -> { });
         }
         return scroll(l);
     }

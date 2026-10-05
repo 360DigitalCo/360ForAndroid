@@ -130,7 +130,7 @@ final class Weather {
                 Http.Resp g = Http.request("GET", "https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=" + lat + "&lon=" + lon, null, null);
                 JSONObject a = new JSONObject(g.body).optJSONObject("address");
                 if (a != null) {
-                    d.place = Auth.firstNonEmpty(a.optString("city"), a.optString("town"), a.optString("village"), a.optString("county"), a.optString("state"));
+                    d.place = Auth.firstNonEmpty(J.s(a, "city"), J.s(a, "town"), J.s(a, "village"), J.s(a, "county"), J.s(a, "state"));
                     if (!d.place.isEmpty()) Store.put("wx_devname", d.place);
                 }
             } catch (Exception ignored) { }
@@ -173,8 +173,8 @@ final class WeatherScreen extends Screen {
             return arr.getJSONObject(0);
         }, (o, e) -> {
             if (e != null) { body.removeAllViews(); body.addView(Ui.state(c, "alert", "Not found", msg(e))); return; }
-            Store.put("wx_lat", o.optString("lat")); Store.put("wx_lon", o.optString("lon"));
-            String name = o.optString("display_name");
+            Store.put("wx_lat", J.s(o, "lat")); Store.put("wx_lon", J.s(o, "lon"));
+            String name = J.s(o, "display_name");
             Store.put("wx_name", name.contains(",") ? name.substring(0, name.indexOf(',')) : name);
             refresh();
         });
@@ -279,13 +279,13 @@ final class NewsScreen extends Screen {
         r.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(14), Ui.dp(12));
         r.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 9));
         LinearLayout b = Ui.vbox(c);
-        b.addView(Ui.text(c, o.optString("title"), 15, Ui.TXT, true));
-        String meta = o.optString("source") + (o.optString("age").isEmpty() ? "" : "  \u2022  " + o.optString("age"));
+        b.addView(Ui.text(c, J.s(o, "title"), 15, Ui.TXT, true));
+        String meta = J.s(o, "source") + (J.s(o, "age").isEmpty() ? "" : "  \u2022  " + J.s(o, "age"));
         b.addView(Ui.text(c, meta, 12, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
-        String d = o.optString("desc");
+        String d = J.s(o, "desc");
         if (!d.isEmpty()) { TextView t = Ui.text(c, d, 13, Ui.MUT, false); t.setMaxLines(3); t.setEllipsize(android.text.TextUtils.TruncateAt.END); b.addView(t, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0)); }
         r.addView(b, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
-        String th = o.optString("thumb");
+        String th = J.s(o, "thumb");
         if (!th.isEmpty()) {
             ImageView iv = new ImageView(c);
             iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -294,7 +294,7 @@ final class NewsScreen extends Screen {
             r.addView(iv, Ui.lp(Ui.dp(84), Ui.dp(84), 12, 0, 0, 0));
             Img.load(th, iv);
         }
-        r.setOnClickListener(v -> a.push(new ReaderScreen(o.optString("url"), o.optString("title"))));
+        r.setOnClickListener(v -> a.push(new ReaderScreen(J.s(o, "url"), J.s(o, "title"))));
         return r;
     }
 }
@@ -444,10 +444,10 @@ final class StocksScreen extends Screen {
             for (int i = 0; i < Math.min(6, arr.length()); i++) {
                 final JSONObject o = arr.optJSONObject(i);
                 if (o == null) continue;
-                TextView t = Ui.text(c, o.optString("symbol") + "  \u2022  " + o.optString("name") + (o.optString("exchange").isEmpty() ? "" : "  (" + o.optString("exchange") + ")"), 14, Ui.TXT, false);
+                TextView t = Ui.text(c, J.s(o, "symbol") + "  \u2022  " + J.s(o, "name") + (J.s(o, "exchange").isEmpty() ? "" : "  (" + J.s(o, "exchange") + ")"), 14, Ui.TXT, false);
                 t.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(14), Ui.dp(12));
                 t.setBackground(Ui.ripple(null)); t.setClickable(true);
-                t.setOnClickListener(v -> { symbol = o.optString("symbol"); sugg.removeAllViews(); a.hideKeyboard(); load(); });
+                t.setOnClickListener(v -> { symbol = J.s(o, "symbol"); sugg.removeAllViews(); a.hideKeyboard(); load(); });
                 box.addView(t);
             }
             if (box.getChildCount() > 0) sugg.addView(box);
@@ -481,10 +481,10 @@ final class StocksScreen extends Screen {
 
     private void render(JSONObject d) {
         LinearLayout hd = Ui.card(c);
-        hd.addView(Ui.text(c, d.optString("companyName") + (d.optString("exchangeName").isEmpty() ? "" : "  \u2022  " + d.optString("exchangeName")), 13, Ui.MUT, false));
-        hd.addView(Ui.text(c, d.optString("symbol"), 12, Ui.MUT, true));
+        hd.addView(Ui.text(c, J.s(d, "companyName") + (J.s(d, "exchangeName").isEmpty() ? "" : "  \u2022  " + J.s(d, "exchangeName")), 13, Ui.MUT, false));
+        hd.addView(Ui.text(c, J.s(d, "symbol"), 12, Ui.MUT, true));
         double last = dbl(d, "lastClose"), ch = dbl(d, "changePct");
-        hd.addView(Ui.text(c, num(last, 2) + (d.optString("currency").isEmpty() ? "" : " " + d.optString("currency")), 32, Ui.TXT, true), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
+        hd.addView(Ui.text(c, num(last, 2) + (J.s(d, "currency").isEmpty() ? "" : " " + J.s(d, "currency")), 32, Ui.TXT, true), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
         hd.addView(Ui.text(c, Double.isNaN(ch) ? "\u2014" : (ch >= 0 ? "Up " : "Down ") + pct(ch, true) + " today", 14, ch >= 0 ? Ui.OK : Ui.BAD, true));
         out.addView(hd);
 
@@ -525,11 +525,11 @@ final class StocksScreen extends Screen {
             {"Day range", range(dbl(d, "dayLow"), dbl(d, "dayHigh"))}, {"52-week range", range(dbl(d, "fiftyTwoWeekLow"), dbl(d, "fiftyTwoWeekHigh"))},
             {"Market cap", compact(dbl(d, "marketCap"))}, {"Volume", compact(dbl(d, "volume"))}, {"Avg volume", compact(dbl(d, "avgVolume"))},
             {"P/E (TTM)", num(dbl(d, "peRatio"), 2)}, {"Forward P/E", num(dbl(d, "forwardPE"), 2)}, {"Beta", num(dbl(d, "beta"), 2)},
-            {"Dividend yield", pct(dbl(d, "dividendYield"), false)}, {"Sector", d.optString("sector", "\u2014")}, {"Industry", d.optString("industry", "\u2014")},
+            {"Dividend yield", pct(dbl(d, "dividendYield"), false)}, {"Sector", J.s(d, "sector", "\u2014")}, {"Industry", J.s(d, "industry", "\u2014")},
         };
         out.addView(kv(rows));
 
-        String rec = d.optString("recommendationKey", "");
+        String rec = J.s(d, "recommendationKey", "");
         double tgt = dbl(d, "targetMeanPrice"), rgw = dbl(d, "revenueGrowth"), pm = dbl(d, "profitMargins");
         if (!rec.isEmpty() || !Double.isNaN(tgt) || !Double.isNaN(rgw) || !Double.isNaN(pm)) {
             out.addView(Ui.label(c, "Analysts"));
@@ -538,7 +538,7 @@ final class StocksScreen extends Screen {
         JSONObject tech = d.optJSONObject("technical");
         if (tech != null) {
             out.addView(Ui.label(c, "Technical outlook"));
-            String lab = tech.optString("outlookLabel", "Neutral / Mixed");
+            String lab = J.s(tech, "outlookLabel", "Neutral / Mixed");
             LinearLayout card = Ui.card(c);
             card.addView(Ui.text(c, lab, 16, lab.contains("Bullish") ? Ui.OK : lab.contains("Bearish") ? Ui.BAD : Ui.WARN, true));
             JSONArray sg = tech.optJSONArray("signals");
@@ -612,7 +612,7 @@ final class TranslatorScreen extends Screen {
             async(() -> Api.fn("dynamic-endpoint", "POST", null, new JSONObject().put("text", text).put("from", from).put("to", to)), (j, e) -> {
                 go.setEnabled(true);
                 if (e != null) { result.setTextColor(Ui.BAD); result.setText("Translation failed: " + msg(e)); return; }
-                String t = j.optString("translated", "");
+                String t = J.s(j, "translated", "");
                 result.setTextColor(Ui.TXT);
                 result.setText(t.isEmpty() ? "No translation returned. Please try again." : t);
             });
@@ -652,7 +652,7 @@ final class ShortenerScreen extends Screen {
             a.hideKeyboard(); go.setEnabled(false); out.removeAllViews(); out.addView(Ui.loading(c));
             async(() -> Api.fn("smooth-endpoint", "POST", null, new JSONObject().put("url", url)), (j, e) -> {
                 go.setEnabled(true); out.removeAllViews();
-                final String sh = j == null ? "" : j.optString("shortUrl", "");
+                final String sh = j == null ? "" : J.s(j, "shortUrl", "");
                 if (e != null || sh.isEmpty()) { out.addView(Ui.state(c, "alert", "Couldn't shorten that link", e == null ? "Check the link and try again." : msg(e))); return; }
                 LinearLayout card = Ui.card(c);
                 TextView t = Ui.text(c, sh, 17, Ui.ACC, true);

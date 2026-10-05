@@ -77,21 +77,21 @@ final class NotesScreen extends Screen {
         String q = search == null ? "" : search.getText().toString().trim().toLowerCase(Locale.US);
         int n = 0;
         for (final JSONObject o : all) {
-            String body = o.optBoolean("is_html") ? Rows.stripTags(o.optString("body")) : o.optString("body");
-            if (!q.isEmpty() && !(o.optString("title") + " " + body).toLowerCase(Locale.US).contains(q)) continue;
+            String body = o.optBoolean("is_html") ? Rows.stripTags(J.s(o, "body")) : J.s(o, "body");
+            if (!q.isEmpty() && !(J.s(o, "title") + " " + body).toLowerCase(Locale.US).contains(q)) continue;
             LinearLayout r = Ui.vbox(c);
             r.setBackground(Ui.ripple(Ui.shape(Ui.CARD, 14, Ui.LINE)));
             r.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(14), Ui.dp(12));
             r.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 9));
             r.setClickable(true);
             LinearLayout t = Ui.hbox(c);
-            TextView ti = Ui.text(c, Auth.firstNonEmpty(o.optString("title"), "Untitled"), 15.5f, Ui.TXT, true);
+            TextView ti = Ui.text(c, Auth.firstNonEmpty(J.s(o, "title"), "Untitled"), 15.5f, Ui.TXT, true);
             ti.setSingleLine(true); ti.setEllipsize(android.text.TextUtils.TruncateAt.END);
             t.addView(ti, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
             if (o.optBoolean("is_favorite")) t.addView(Ui.icon(c, "star-fill", 14, 0xFFF59E0B));
             r.addView(t);
             if (!body.isEmpty()) r.addView(Rows.clamp(Ui.text(c, body, 13, Ui.MUT, false), 2), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 3, 0, 0));
-            r.addView(Ui.text(c, Fmt.rel(o.optString("updated_at")), 11, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 6, 0, 0));
+            r.addView(Ui.text(c, Fmt.rel(J.s(o, "updated_at")), 11, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 6, 0, 0));
             r.setOnClickListener(v -> a.push(new NoteEditScreen(o)));
             list.addView(r);
             n++;
@@ -111,7 +111,7 @@ final class NoteEditScreen extends Screen {
         List<View> v = new ArrayList<>();
         v.add(Ui.iconButton(a, "star", x -> { fav = !fav; dirty = true; ((android.widget.ImageView) ((FrameLayout) x).getChildAt(0)).setImageDrawable(Icons.drawable(c, fav ? "star-fill" : "star", fav ? 0xFFF59E0B : Ui.TXT)); }));
         if (note != null) v.add(Ui.iconButton(a, "trash", x -> new android.app.AlertDialog.Builder(a).setTitle("Move to trash?").setNegativeButton("Cancel", null)
-            .setPositiveButton("Trash", (d, w) -> async(() -> Api.rest("PATCH", "notes?id=eq." + Http.enc(note.optString("id")), new JSONObject().put("deleted_at", iso()), false), (r, e) -> {
+            .setPositiveButton("Trash", (d, w) -> async(() -> Api.rest("PATCH", "notes?id=eq." + Http.enc(J.s(note, "id")), new JSONObject().put("deleted_at", iso()), false), (r, e) -> {
                 if (e != null) toast("Couldn't delete."); else { dirty = false; a.onBackPressed(); }
             })).show()));
         v.add(Ui.iconButton(a, "check", x -> save(true)));
@@ -132,9 +132,9 @@ final class NoteEditScreen extends Screen {
         body.setSingleLine(false); body.setMinLines(14); body.setGravity(Gravity.TOP);
         body.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         if (note != null) {
-            title.setText(note.optString("title"));
+            title.setText(J.s(note, "title"));
             fav = note.optBoolean("is_favorite");
-            String b = note.optString("body");
+            String b = J.s(note, "body");
             if (note.optBoolean("is_html")) {
                 body.setText(Html.fromHtml(b.replace("</p>", "</p><br>")).toString().trim());
                 l.addView(Ui.text(c, "This note has formatting from the web editor. It is shown as plain text here and saving will simplify it.", 11.5f, Ui.WARN, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 0, 0, 8));
@@ -158,7 +158,7 @@ final class NoteEditScreen extends Screen {
         async(() -> {
             JSONObject row = new JSONObject().put("title", t.isEmpty() ? "Untitled" : t).put("body", b).put("is_html", false).put("is_favorite", fav);
             if (note == null) { row.put("user_id", Auth.userId); Api.rest("POST", "notes", row, false); }
-            else { row.put("updated_at", iso()); Api.rest("PATCH", "notes?id=eq." + Http.enc(note.optString("id")), row, false); }
+            else { row.put("updated_at", iso()); Api.rest("PATCH", "notes?id=eq." + Http.enc(J.s(note, "id")), row, false); }
             return Boolean.TRUE;
         }, (r, e) -> {
             saving = false;
@@ -195,10 +195,10 @@ final class DocsScreen extends Screen {
                 r.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(14), Ui.dp(12));
                 r.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 9));
                 r.setClickable(true);
-                r.addView(Ui.text(c, Auth.firstNonEmpty(o.optString("title"), "Untitled"), 15.5f, Ui.TXT, true));
-                String pt = o.optString("plain_text");
+                r.addView(Ui.text(c, Auth.firstNonEmpty(J.s(o, "title"), "Untitled"), 15.5f, Ui.TXT, true));
+                String pt = J.s(o, "plain_text");
                 if (!pt.isEmpty() && !"null".equals(pt)) r.addView(Rows.clamp(Ui.text(c, pt, 13, Ui.MUT, false), 2), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 3, 0, 0));
-                r.addView(Ui.text(c, Fmt.rel(o.optString("updated_at")), 11, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 6, 0, 0));
+                r.addView(Ui.text(c, Fmt.rel(J.s(o, "updated_at")), 11, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 6, 0, 0));
                 r.setOnClickListener(v -> a.push(new DocViewScreen(o)));
                 list.addView(r);
             }
@@ -209,10 +209,10 @@ final class DocsScreen extends Screen {
 final class DocViewScreen extends Screen {
     private final JSONObject d;
     DocViewScreen(JSONObject d) { this.d = d; }
-    @Override String title() { return Auth.firstNonEmpty(d.optString("title"), "Document"); }
+    @Override String title() { return Auth.firstNonEmpty(J.s(d, "title"), "Document"); }
     @Override View build() {
         LinearLayout l = col();
-        TextView t = Ui.text(c, d.optString("plain_text").isEmpty() || "null".equals(d.optString("plain_text")) ? "This document has no text content." : d.optString("plain_text"), 15.5f, Ui.TXT, false);
+        TextView t = Ui.text(c, J.s(d, "plain_text").isEmpty() || "null".equals(J.s(d, "plain_text")) ? "This document has no text content." : J.s(d, "plain_text"), 15.5f, Ui.TXT, false);
         t.setLineSpacing(0, 1.4f);
         t.setTextIsSelectable(true);
         l.addView(t);

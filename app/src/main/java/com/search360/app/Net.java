@@ -27,6 +27,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/** Null-safe JSON reads. optString() returns the literal text "null" for JSON null, which then shows up in the UI. */
+final class J {
+    static String s(JSONObject o, String k) { return s(o, k, ""); }
+    static String s(JSONObject o, String k, String def) {
+        if (o == null || !o.has(k) || o.isNull(k)) return def;
+        String v = o.optString(k, def);
+        return v == null || v.equals("null") ? def : v;
+    }
+}
+
 /** Minimal HTTP + background-thread helpers (HttpURLConnection, HTTPS only). */
 final class Http {
     static final ExecutorService POOL = Executors.newFixedThreadPool(6);
@@ -53,6 +63,10 @@ final class Http {
     }
 
     static HttpURLConnection open(String method, String url, Map<String, String> h, String body) throws IOException {
+        return open(method, url, h, body, 30000);
+    }
+
+    static HttpURLConnection open(String method, String url, Map<String, String> h, String body, int readMs) throws IOException {
         if (!url.startsWith("https://")) throw new IOException("HTTPS required");
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         try { c.setRequestMethod(method); }
@@ -61,7 +75,7 @@ final class Http {
             forceMethod(c, "PATCH");
         }
         c.setConnectTimeout(15000);
-        c.setReadTimeout(30000);
+        c.setReadTimeout(readMs);
         c.setInstanceFollowRedirects(true);
         c.setRequestProperty("User-Agent", "360App/3.1 (Android)");
         if (h != null) for (Map.Entry<String, String> e : h.entrySet()) c.setRequestProperty(e.getKey(), e.getValue());
@@ -124,12 +138,16 @@ final class Http {
 
     /** Stream a response line-by-line (server-sent events). Blocking: call from a worker thread. */
     static void stream(String method, String url, Map<String, String> h, String body, LineCb cb) throws IOException {
-        HttpURLConnection c = open(method, url, h, body);
+        HttpURLConnection c = open(method, url, h, body, 120000);   // first token can be slow
         try {
             int code = c.getResponseCode();
             if (code >= 400) {
                 InputStream e = c.getErrorStream();
-                throw new IOException("HTTP " + code + (e != null ? ": " + readAll(e) : ""));
+                String raw = e != null ? readAll(e) : "";
+                JSONObject j = Api.parse(raw);
+                String m = Api.errorOf(j);
+                if (m == null) m = J.s(j, "reply", J.s(j, "message", J.s(j, "msg", "Request failed (" + code + ")")));
+                throw new Api.ApiError(code, m);
             }
             BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
             String line;
@@ -144,7 +162,7 @@ final class Api {
     static final String SB = "https://wiswfpfsjiowtrdyqpxy.supabase.co";
     static final String ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpc3dmcGZzamlvd3RyZHlxcHh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzg4OTcsImV4cCI6MjA4MzkxNDg5N30.z_4FtM2c8UwgrRlafPYjolQuod4IoHQats95XHio1zM";
 
-    static final class ApiError extends Exception {
+    static final class ApiError extends IOException {
         final int code;
         ApiError(int code, String msg) { super(msg); this.code = code; }
     }
@@ -178,9 +196,10 @@ final class Api {
         Auth.refreshIfNeeded();
         String url = SB + "/functions/v1/" + name + (query == null ? "" : "?" + query);
         Http.Resp r = Http.request(method, url, headers(body != null), body == null ? null : body.toString());
+        if (r.code == 401 && Auth.signedIn() && Auth.forceRefresh()) r = Http.request(method, url, headers(body != null), body == null ? null : body.toString());
         JSONObject j = parse(r.body);
         String err = errorOf(j);
-        if (r.code >= 400 && err == null) err = Auth.firstNonEmpty(j.optString("message"), j.optString("msg"), "Request failed (" + r.code + ")");
+        if (r.code >= 400 && err == null) err = Auth.firstNonEmpty(J.s(j, "message"), J.s(j, "msg"), "Request failed (" + r.code + ")");
         if (r.code >= 400 || err != null) throw new ApiError(r.code, err);
         return j;
     }
@@ -191,9 +210,10 @@ final class Api {
         Map<String, String> h = headers(body != null);
         h.put("Prefer", returnRows ? "return=representation" : "return=minimal");
         Http.Resp r = Http.request(method, SB + "/rest/v1/" + path, h, body == null ? null : body.toString());
+        if (r.code == 401 && Auth.signedIn() && Auth.forceRefresh()) { h = headers(body != null); h.put("Prefer", returnRows ? "return=representation" : "return=minimal"); r = Http.request(method, SB + "/rest/v1/" + path, h, body == null ? null : body.toString()); }
         if (r.code >= 400) {
             JSONObject j = parse(r.body);
-            throw new ApiError(r.code, j.optString("message", "Request failed (" + r.code + ")"));
+            throw new ApiError(r.code, J.s(j, "message", "Request failed (" + r.code + ")"));
         }
         String t = r.body.trim();
         return t.startsWith("[") ? new JSONArray(t) : new JSONArray();
@@ -212,8 +232,8 @@ final class Auth {
             String s = Store.get("auth", null);
             if (s == null) return;
             JSONObject j = new JSONObject(s);
-            access = j.optString("a", null); refresh = j.optString("r", null);
-            userId = j.optString("id", null); email = j.optString("e", null);
+            access = J.s(j, "a", null); refresh = J.s(j, "r", null);
+            userId = J.s(j, "id", null); email = J.s(j, "e", null);
             expiresAt = j.optLong("x", 0);
         } catch (Exception ignored) { }
     }
@@ -245,11 +265,11 @@ final class Auth {
     /** Apply a token response ({access_token, refresh_token, expires_in|expires_at, user}). */
     static void apply(JSONObject j) throws Exception {
         access = j.getString("access_token");
-        refresh = j.optString("refresh_token", refresh);
+        refresh = J.s(j, "refresh_token", refresh);
         long exp = j.optLong("expires_at", 0);
         expiresAt = exp > 0 ? exp : System.currentTimeMillis() / 1000 + j.optLong("expires_in", 3600);
         JSONObject u = j.optJSONObject("user");
-        if (u != null) { userId = u.optString("id", userId); email = u.optString("email", email); }
+        if (u != null) { userId = J.s(u, "id", userId); email = J.s(u, "email", email); }
         save();
         notifyAuth();
     }
@@ -263,11 +283,16 @@ final class Auth {
         else if (r.code == 400 || r.code == 401) clear();
     }
 
+    /** Expired/invalid JWT: get a new access token now. False if that failed (user is signed out). */
+    static synchronized boolean forceRefresh() {
+        try { expiresAt = 0; refreshIfNeeded(); return signedIn(); } catch (Exception e) { return false; }
+    }
+
     static void signIn(String em, String pw) throws Exception {
         Http.Resp r = Http.request("POST", Api.SB + "/auth/v1/token?grant_type=password", plain(false),
                 new JSONObject().put("email", em).put("password", pw).toString());
         JSONObject j = Api.parse(r.body);
-        if (r.code != 200) throw new Api.ApiError(r.code, firstNonEmpty(j.optString("error_description"), j.optString("msg"), j.optString("message"), "Sign-in failed"));
+        if (r.code != 200) throw new Api.ApiError(r.code, firstNonEmpty(J.s(j, "error_description"), J.s(j, "msg"), J.s(j, "message"), "Sign-in failed"));
         apply(j);
     }
 
@@ -276,7 +301,7 @@ final class Auth {
         Http.Resp r = Http.request("POST", Api.SB + "/auth/v1/signup", plain(false),
                 new JSONObject().put("email", em).put("password", pw).toString());
         JSONObject j = Api.parse(r.body);
-        if (r.code >= 400) throw new Api.ApiError(r.code, firstNonEmpty(j.optString("msg"), j.optString("error_description"), j.optString("message"), "Sign-up failed"));
+        if (r.code >= 400) throw new Api.ApiError(r.code, firstNonEmpty(J.s(j, "msg"), J.s(j, "error_description"), J.s(j, "message"), "Sign-up failed"));
         if (j.has("access_token")) { apply(j); return "Account created."; }
         return "Check your email to confirm your account.";
     }
@@ -306,7 +331,7 @@ final class Auth {
         Http.Resp r = Http.request("GET", Api.SB + "/auth/v1/user", h, null);
         if (r.code != 200) { clear(); throw new Exception("Could not load your account"); }
         JSONObject u = new JSONObject(r.body);
-        userId = u.optString("id"); email = u.optString("email");
+        userId = J.s(u, "id"); email = J.s(u, "email");
         save();
         notifyAuth();
     }

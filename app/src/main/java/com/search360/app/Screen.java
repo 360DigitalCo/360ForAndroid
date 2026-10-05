@@ -39,8 +39,20 @@ abstract class Screen {
         return s;
     }
     static String msg(Exception e) {
-        String m = e == null ? "" : e.getMessage();
-        if (e instanceof java.net.UnknownHostException || e instanceof java.net.SocketTimeoutException) return "No connection. Check your network and try again.";
-        return m == null || m.isEmpty() ? "Something went wrong." : m;
+        if (e == null) return "Something went wrong.";
+        if (e instanceof java.net.UnknownHostException || e instanceof java.net.SocketTimeoutException || e instanceof java.net.ConnectException)
+            return "No connection. Check your network and try again.";
+        String m = e.getMessage() == null ? "" : e.getMessage().trim();
+        int code = e instanceof Api.ApiError ? ((Api.ApiError) e).code : 0;
+        if (m.startsWith("<")) m = "";                                   // an HTML error page from a gateway
+        if (m.toLowerCase(java.util.Locale.US).matches(".*all ai providers.*(unavailable|down).*")) return "The AI service is busy right now. Please try again in a moment.";
+        if (code == 401 || code == 403 || m.toLowerCase(java.util.Locale.US).contains("jwt"))
+            return Auth.signedIn() ? "Your session expired. Sign out and back in, then try again." : "Sign in to use this.";
+        if (code == 404) return "This feature isn't available on the server yet.";
+        if (code == 408 || code == 504) return "The server took too long to respond. Try again.";
+        if (code == 429) return "Too many requests. Wait a moment and try again.";
+        if (code >= 500) return m.isEmpty() || m.length() > 140 ? "The server had a problem. Try again in a moment." : m;
+        if (m.length() > 200) m = m.substring(0, 200) + "\u2026";
+        return m.isEmpty() ? "Something went wrong." : m;
     }
 }

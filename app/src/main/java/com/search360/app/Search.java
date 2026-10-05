@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
@@ -13,6 +14,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -52,49 +54,34 @@ final class Rows {
     static View article(final Screen s, final JSONObject o) {
         LinearLayout r = rowShell(s);
         LinearLayout b = Ui.vbox(s.c);
-        b.addView(Ui.text(s.c, o.optString("title"), 15, Ui.TXT, true));
-        String src = o.optString("source"), age = o.optString("age");
+        b.addView(Ui.text(s.c, J.s(o, "title"), 15, Ui.TXT, true));
+        String src = J.s(o, "source"), age = J.s(o, "age");
         String meta = src + (src.isEmpty() || age.isEmpty() ? "" : "  \u2022  ") + age;
         if (!meta.isEmpty()) b.addView(Ui.text(s.c, meta, 12, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
-        String d = o.optString("desc");
+        String d = J.s(o, "desc");
         if (!d.isEmpty()) b.addView(clamp(Ui.text(s.c, d, 13, Ui.MUT, false), 3), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
         r.addView(b, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
-        if (!o.optString("thumb").isEmpty()) r.addView(thumb(s, o.optString("thumb"), 84));
-        r.setOnClickListener(v -> s.a.push(new ReaderScreen(o.optString("url"), o.optString("title"))));
-        return r;
-    }
-
-    static View web(final Screen s, final JSONObject o) {
-        LinearLayout r = rowShell(s);
-        LinearLayout b = Ui.vbox(s.c);
-        String url = o.optString("url");
-        b.addView(Ui.text(s.c, Auth.firstNonEmpty(o.optString("displayUrl"), hostOf(url)), 12, Ui.MUT, false));
-        TextView t = Ui.text(s.c, stripTags(o.optString("title")), 16, Ui.ACC, true);
-        b.addView(t, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 3, 0, 0));
-        String d = stripTags(Auth.firstNonEmpty(o.optString("desc"), o.optString("snippet")));
-        if (!d.isEmpty()) b.addView(clamp(Ui.text(s.c, d, 13, Ui.MUT, false), 3), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
-        r.addView(b, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
-        if (!o.optString("thumb").isEmpty()) r.addView(thumb(s, o.optString("thumb"), 76));
-        r.setOnClickListener(v -> s.a.push(new ReaderScreen(url, stripTags(o.optString("title")))));
+        if (!J.s(o, "thumb").isEmpty()) r.addView(thumb(s, J.s(o, "thumb"), 84));
+        r.setOnClickListener(v -> s.a.push(new ReaderScreen(J.s(o, "url"), J.s(o, "title"))));
         return r;
     }
 
     static View product(final Screen s, final JSONObject o) {
         LinearLayout r = rowShell(s);
-        if (!o.optString("thumb").isEmpty()) {
-            ImageView iv = thumb(s, o.optString("thumb"), 84);
+        if (!J.s(o, "thumb").isEmpty()) {
+            ImageView iv = thumb(s, J.s(o, "thumb"), 84);
             ((LinearLayout.LayoutParams) iv.getLayoutParams()).setMargins(0, 0, Ui.dp(12), 0);
             r.addView(iv);
         }
         LinearLayout b = Ui.vbox(s.c);
-        b.addView(clamp(Ui.text(s.c, o.optString("title"), 14.5f, Ui.TXT, true), 2));
-        if (!o.optString("price").isEmpty()) b.addView(Ui.text(s.c, o.optString("price"), 17, Ui.TXT, true), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
-        String meta = o.optString("source");
+        b.addView(clamp(Ui.text(s.c, J.s(o, "title"), 14.5f, Ui.TXT, true), 2));
+        if (!J.s(o, "price").isEmpty()) b.addView(Ui.text(s.c, J.s(o, "price"), 17, Ui.TXT, true), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
+        String meta = J.s(o, "source");
         if (o.has("rating") && !o.isNull("rating") && !String.valueOf(o.opt("rating")).isEmpty())
-            meta += (meta.isEmpty() ? "" : "  \u2022  ") + o.opt("rating") + " stars" + (o.optString("reviews").isEmpty() ? "" : " (" + o.optString("reviews") + ")");
+            meta += (meta.isEmpty() ? "" : "  \u2022  ") + o.opt("rating") + " stars" + (J.s(o, "reviews").isEmpty() ? "" : " (" + J.s(o, "reviews") + ")");
         if (!meta.isEmpty()) b.addView(Ui.text(s.c, meta, 12, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 3, 0, 0));
         r.addView(b, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
-        r.setOnClickListener(v -> { if (!o.optString("url").isEmpty()) s.a.push(new ReaderScreen(o.optString("url"), o.optString("title"))); });
+        r.setOnClickListener(v -> { if (!J.s(o, "url").isEmpty()) s.a.push(new ReaderScreen(J.s(o, "url"), J.s(o, "title"))); });
         return r;
     }
 
@@ -104,16 +91,262 @@ final class Rows {
     }
 }
 
+
+/** Custom result cards. */
+final class ResultUi {
+    static String siteName(String host) {
+        String h = host == null ? "" : host.toLowerCase(java.util.Locale.US).replaceFirst("^www\\.", "");
+        if (h.isEmpty()) return "";
+        String[] p = h.split("\\.");
+        if (p.length <= 1) return cap(h);
+        int idx = p.length - 2;
+        if (p.length >= 3 && p[p.length - 1].length() == 2) {
+            String m = p[idx];
+            if (m.equals("co") || m.equals("com") || m.equals("org") || m.equals("net") || m.equals("gov") || m.equals("ac") || m.equals("edu")) idx = p.length - 3;
+        }
+        return cap(p[idx]);
+    }
+    private static String cap(String s) {
+        s = s.replace('-', ' ');
+        if (s.length() <= 3) return s.toUpperCase(java.util.Locale.US);
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+    static int avatarColor(String host) {
+        return android.graphics.Color.HSVToColor(new float[]{Math.abs((host == null ? "" : host).hashCode()) % 360, 0.55f, Ui.dark ? 0.82f : 0.72f});
+    }
+    static TextView avatar(Screen s, String host, int dp) {
+        String n = siteName(host);
+        TextView t = Ui.text(s.c, n.isEmpty() ? "?" : n.substring(0, 1).toUpperCase(java.util.Locale.US), dp * 0.46f, 0xFFFFFFFF, true);
+        t.setGravity(Gravity.CENTER);
+        t.setBackground(Ui.shape(avatarColor(host), dp / 2f, 0));
+        t.setLayoutParams(Ui.lp(Ui.dp(dp), Ui.dp(dp), 0, 0, 10, 0));
+        return t;
+    }
+
+    /** Snippet with the query terms (the <b> runs) emphasised. */
+    static CharSequence snippet(String html) {
+        SpannableStringBuilder sb = new SpannableStringBuilder(android.text.Html.fromHtml(html == null ? "" : html));
+        for (android.text.style.StyleSpan sp : sb.getSpans(0, sb.length(), android.text.style.StyleSpan.class)) {
+            if (sp.getStyle() == Typeface.BOLD)
+                sb.setSpan(new android.text.style.ForegroundColorSpan(Ui.TXT), sb.getSpanStart(sp), sb.getSpanEnd(sp), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return sb;
+    }
+
+    private static TextView badge(Screen s, String label, int color) {
+        TextView t = Ui.text(s.c, label, 10.5f, color, true);
+        t.setBackground(Ui.shape((color & 0x00FFFFFF) | 0x22000000, 8, 0));
+        t.setPadding(Ui.dp(8), Ui.dp(3), Ui.dp(8), Ui.dp(3));
+        t.setLayoutParams(Ui.lp(Ui.WRAP, Ui.WRAP, 0, 0, 6, 0));
+        return t;
+    }
+
+    static View card(final Screen s, final Hit h) {
+        LinearLayout card = Ui.vbox(s.c);
+        card.setBackground(Ui.ripple(Ui.shape(Ui.CARD, 16, Ui.LINE)));
+        card.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(14), Ui.dp(12));
+        card.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 10));
+        card.setClickable(true);
+
+        LinearLayout top = Ui.hbox(s.c);
+        top.addView(avatar(s, h.host(), 28));
+        LinearLayout who = Ui.vbox(s.c);
+        who.addView(Ui.text(s.c, siteName(h.host()), 13, Ui.TXT, true));
+        TextView crumb = Ui.text(s.c, h.crumb.isEmpty() ? h.host() : h.crumb, 11.5f, Ui.MUT, false);
+        crumb.setSingleLine(true); crumb.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        who.addView(crumb);
+        top.addView(who, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
+        FrameLayout more = new FrameLayout(s.c);
+        more.setClickable(true);
+        more.setContentDescription("More options");
+        more.addView(Ui.icon(s.c, "sliders", 16, Ui.MUT), new FrameLayout.LayoutParams(Ui.dp(16), Ui.dp(16), Gravity.CENTER));
+        more.setOnClickListener(v -> menu(s, h));
+        top.addView(more, Ui.lp(Ui.dp(34), Ui.dp(34)));
+        card.addView(top);
+
+        LinearLayout mid = Ui.hbox(s.c);
+        mid.setGravity(Gravity.TOP);
+        LinearLayout text = Ui.vbox(s.c);
+        TextView title = Ui.text(s.c, h.title.isEmpty() ? h.url : h.title, 17, Ui.ACC, true);
+        title.setLineSpacing(0, 1.08f);
+        title.setMaxLines(2); title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        text.addView(title, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 8, 0, 0));
+        if (!h.snippet.isEmpty()) {
+            TextView sn = Ui.text(s.c, "", 13.5f, Ui.MUT, false);
+            sn.setText(snippet(h.snippet));
+            sn.setLineSpacing(0, 1.22f);
+            sn.setMaxLines(4); sn.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            text.addView(sn, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 5, 0, 0));
+        }
+        mid.addView(text, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
+        if (!h.thumb.isEmpty()) mid.addView(Rows.thumb(s, h.thumb, 80));
+        card.addView(mid);
+
+        LinearLayout badges = Ui.hbox(s.c);
+        if (h.from360) badges.addView(badge(s, "360 INDEX", Ui.ACC));
+        if (h.kind.equals("video")) badges.addView(badge(s, "VIDEO", 0xFFEF4444));
+        if (h.kind.equals("pdf")) badges.addView(badge(s, "PDF", 0xFFD97706));
+        if (badges.getChildCount() > 0) card.addView(badges, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 8, 0, 0));
+
+        card.setOnClickListener(v -> open(s, h));
+        card.setOnLongClickListener(v -> { menu(s, h); return true; });
+        return card;
+    }
+
+    static View video(final Screen s, final Hit h) {
+        LinearLayout card = Ui.vbox(s.c);
+        card.setBackground(Ui.ripple(Ui.shape(Ui.CARD, 16, Ui.LINE)));
+        card.setClipToOutline(true);
+        card.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 12));
+        card.setClickable(true);
+        FrameLayout thumb = new FrameLayout(s.c);
+        thumb.setBackgroundColor(0xFF000000);
+        ImageView iv = new ImageView(s.c);
+        iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        thumb.addView(iv, new FrameLayout.LayoutParams(Ui.MATCH, Ui.MATCH));
+        if (!h.thumb.isEmpty()) Img.load(h.thumb, iv);
+        FrameLayout play = new FrameLayout(s.c);
+        play.setBackground(Ui.shape(0x99000000, 26, 0));
+        play.addView(Ui.icon(s.c, "play", 24, 0xFFFFFFFF), new FrameLayout.LayoutParams(Ui.dp(24), Ui.dp(24), Gravity.CENTER));
+        thumb.addView(play, new FrameLayout.LayoutParams(Ui.dp(52), Ui.dp(52), Gravity.CENTER));
+        card.addView(thumb, new LinearLayout.LayoutParams(Ui.MATCH, Ui.dp(188)));
+        LinearLayout meta = Ui.vbox(s.c);
+        meta.setPadding(Ui.dp(14), Ui.dp(10), Ui.dp(14), Ui.dp(12));
+        TextView t = Ui.text(s.c, h.title, 15, Ui.TXT, true);
+        t.setMaxLines(2); t.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        meta.addView(t);
+        meta.addView(Ui.text(s.c, siteName(h.host()) + "  \u2022  opens outside the app", 12, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 4, 0, 0));
+        card.addView(meta);
+        card.setOnClickListener(v -> s.a.openExternal(h.url));
+        card.setOnLongClickListener(v -> { menu(s, h); return true; });
+        return card;
+    }
+
+    static void open(Screen s, Hit h) {
+        if (h.kind.equals("video")) s.a.openExternal(h.url);
+        else s.a.push(new ReaderScreen(h.url, h.title));
+    }
+
+    static void menu(final Screen s, final Hit h) {
+        new android.app.AlertDialog.Builder(s.a).setTitle(h.title.isEmpty() ? h.host() : h.title)
+            .setItems(new String[]{"Read here", "Open in browser", "Copy link", "Share link"}, (d, i) -> {
+                if (i == 0) s.a.push(new ReaderScreen(h.url, h.title));
+                else if (i == 1) s.a.openExternal(h.url);
+                else if (i == 2) { TranslatorScreen.copyText(s.c, h.url); s.a.toast("Link copied"); }
+                else { android.content.Intent it = new android.content.Intent(android.content.Intent.ACTION_SEND); it.setType("text/plain"); it.putExtra(android.content.Intent.EXTRA_TEXT, h.url); s.a.startActivity(android.content.Intent.createChooser(it, "Share link")); }
+            }).show();
+    }
+}
+
+/** Instant answer shown above web results (Wikipedia summary via the same ddg-instant function the website uses). */
+final class Knowledge {
+    String title = "", desc = "", source = "", image = "";
+    List<String> related = new ArrayList<>();
+    interface Pick { void on(String q); }
+
+    /** The panel is only relevant when the entity name shares a real word with the query. */
+    static boolean relevant(String q, String title) {
+        java.util.Set<String> qa = words(q), ta = words(title);
+        for (String w : ta) if (qa.contains(w)) return true;
+        return false;
+    }
+    private static java.util.Set<String> words(String s) {
+        java.util.Set<String> out = new HashSet<>();
+        for (String w : (s == null ? "" : s).toLowerCase(java.util.Locale.US).split("[^\\p{L}\\p{N}]+")) if (w.length() >= 3) out.add(w);
+        return out;
+    }
+
+    static Knowledge fetch(String q) throws Exception {
+        JSONObject d = Api.fn("ddg-instant", "GET", "q=" + Http.enc(q), null);
+        String heading = J.s(d, "Heading"), abs = J.s(d, "AbstractText"), src = J.s(d, "AbstractURL"), img = J.s(d, "Image");
+        Knowledge k = new Knowledge();
+        JSONArray rt = d.optJSONArray("RelatedTopics");
+        if (rt != null) for (int i = 0; i < rt.length() && k.related.size() < 5; i++) {
+            JSONObject o = rt.optJSONObject(i);
+            if (o == null) continue;
+            String t = J.s(o, "Text");
+            if (t.isEmpty() && o.optJSONArray("Topics") != null && o.optJSONArray("Topics").length() > 0) t = J.s(o.optJSONArray("Topics").optJSONObject(0), "Text");
+            int dash = t.indexOf(" - ");
+            if (dash > 0) t = t.substring(0, dash);
+            if (!t.isEmpty() && t.length() < 60) k.related.add(t);
+        }
+        k.title = heading; k.desc = abs; k.source = src;
+        k.image = img.startsWith("http") ? Cse.https(img) : img.isEmpty() ? "" : "https://duckduckgo.com" + img;
+        if (!heading.isEmpty()) {
+            try {
+                Http.Resp r = Http.request("GET", "https://en.wikipedia.org/api/rest_v1/page/summary/" + Http.enc(heading.replace(' ', '_')), null, null);
+                if (r.code == 200) {
+                    JSONObject w = new JSONObject(r.body);
+                    if (!"disambiguation".equals(J.s(w, "type"))) {
+                        if (!J.s(w, "extract").isEmpty()) k.desc = J.s(w, "extract");
+                        JSONObject th = w.optJSONObject("thumbnail");
+                        if (th != null && !J.s(th, "source").isEmpty()) k.image = Cse.https(J.s(th, "source"));
+                        JSONObject cu = w.optJSONObject("content_urls"), dk = cu == null ? null : cu.optJSONObject("desktop");
+                        if (dk != null && !J.s(dk, "page").isEmpty()) k.source = J.s(dk, "page");
+                    }
+                }
+            } catch (Exception ignored) { }
+        }
+        if (k.title.isEmpty() || k.desc.isEmpty()) return null;
+        if (!relevant(q, k.title)) return null;
+        return k;
+    }
+
+    View card(final Screen s, final Pick pick) {
+        LinearLayout c = Ui.vbox(s.c);
+        c.setBackground(Ui.shape(Ui.CARD, 18, Ui.LINE));
+        c.setPadding(Ui.dp(16), Ui.dp(14), Ui.dp(16), Ui.dp(14));
+        c.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 12));
+        LinearLayout row = Ui.hbox(s.c);
+        row.setGravity(Gravity.TOP);
+        LinearLayout t = Ui.vbox(s.c);
+        t.addView(Ui.text(s.c, "INSTANT ANSWER", 10.5f, Ui.ACC, true));
+        t.addView(Ui.text(s.c, title, 21, Ui.TXT, true), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 3, 0, 0));
+        row.addView(t, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
+        if (!image.isEmpty()) row.addView(Rows.thumb(s, image, 76));
+        c.addView(row);
+        TextView d = Ui.text(s.c, desc, 14, Ui.TXT, false);
+        d.setLineSpacing(0, 1.28f);
+        d.setMaxLines(6); d.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        c.addView(d, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 8, 0, 0));
+        if (!source.isEmpty()) {
+            TextView more = Ui.text(s.c, "Read more on " + ResultUi.siteName(Rows.hostOf(source)), 13, Ui.ACC, true);
+            more.setPadding(0, Ui.dp(10), 0, Ui.dp(2));
+            more.setClickable(true);
+            more.setOnClickListener(v -> s.a.push(new ReaderScreen(source, title)));
+            c.addView(more);
+        }
+        if (!related.isEmpty()) {
+            c.addView(Ui.text(s.c, "People also search for", 11.5f, Ui.MUT, true), Ui.lp(Ui.WRAP, Ui.WRAP, 0, 8, 0, 6));
+            LinearLayout chips = Ui.hbox(s.c);
+            for (final String r : related) { TextView ch = Ui.chip(s.c, r, false); ch.setOnClickListener(v -> pick.on(r)); chips.addView(ch); }
+            HorizontalScrollView hs = new HorizontalScrollView(s.c);
+            hs.setHorizontalScrollBarEnabled(false); hs.addView(chips);
+            c.addView(hs);
+        }
+        return c;
+    }
+}
+
 final class SearchScreen extends Screen {
     static String pendingQuery;
-    private static final String[][] TABS = {{"web", "Web"}, {"images", "Images"}, {"news", "News"}, {"shopping", "Shopping"}, {"ai", "AI"}};
+    private static final String[][] TABS = {{"web", "Web"}, {"images", "Images"}, {"videos", "Videos"}, {"news", "News"}, {"shopping", "Shopping"}, {"ai", "AI"}};
     private EditText box;
     private LinearLayout results, sugg, tabRow;
     private String tab = "web", query = "";
-    private int token = 0, csePage = 1;
+    private int token = 0;
     private final Handler h = new Handler(Looper.getMainLooper());
-    private Runnable pendingSugg;
+    private Runnable pendingSugg, paintLater;
     private boolean suppressSugg;
+
+    // web-tab state
+    private List<Hit> cseHits = new ArrayList<>(), edgeHits = new ArrayList<>();
+    private boolean cseDone, edgeDone, cseViaFn, cseMore;
+    private String count = "", time = "";
+    private int cseNext;
+    private Knowledge kp;
+    private List<String> related = new ArrayList<>();
+    private Exception webError;
 
     @Override View build() {
         LinearLayout l = col();
@@ -170,44 +403,55 @@ final class SearchScreen extends Screen {
             String q = pendingQuery; pendingQuery = null;
             suppressSugg = true; box.setText(q); suppressSugg = false;
             run(q);
-        } else if (query.isEmpty()) { box.requestFocus(); }
+        } else if (query.isEmpty()) box.requestFocus();
     }
 
     private void suggest(final String q) {
         async(() -> Api.fn("autocomplete", "GET", "q=" + Http.enc(q), null), (j, e) -> {
             sugg.removeAllViews();
             if (e != null || j == null || !box.getText().toString().trim().equals(q)) return;
-            JSONArray arr = j.optJSONArray("suggestions");
-            if (arr == null) arr = j.optJSONArray("items");
-            if (arr == null) arr = j.optJSONArray("results");
-            if (arr == null || arr.length() == 0) return;
-            LinearLayout list = Ui.vbox(c);
-            list.setBackground(Ui.shape(Ui.CARD, 12, Ui.LINE));
-            list.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 10));
-            for (int i = 0; i < Math.min(6, arr.length()); i++) {
-                Object o = arr.opt(i);
-                final String s = o instanceof JSONObject ? ((JSONObject) o).optString("text") : String.valueOf(o);
-                if (s.isEmpty()) continue;
+            List<String> list = suggestionsOf(j);
+            if (list.isEmpty()) return;
+            LinearLayout box2 = Ui.vbox(c);
+            box2.setBackground(Ui.shape(Ui.CARD, 12, Ui.LINE));
+            box2.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 10));
+            for (final String s : list.subList(0, Math.min(6, list.size()))) {
                 LinearLayout row = Ui.hbox(c);
                 row.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(14), Ui.dp(12));
                 row.setBackground(Ui.ripple(null)); row.setClickable(true);
                 row.addView(Ui.icon(c, "search", 16, Ui.MUT), Ui.lp(Ui.dp(16), Ui.dp(16), 0, 0, 12, 0));
                 row.addView(Ui.text(c, s, 14.5f, Ui.TXT, false));
                 row.setOnClickListener(v -> { suppressSugg = true; box.setText(s); suppressSugg = false; run(s); });
-                list.addView(row);
+                box2.addView(row);
             }
-            sugg.addView(list);
+            sugg.addView(box2);
         });
+    }
+
+    /** Accepts {suggestions|items|results: [string | {text}|{phrase}]}. */
+    static List<String> suggestionsOf(JSONObject j) {
+        List<String> out = new ArrayList<>();
+        JSONArray arr = j.optJSONArray("suggestions");
+        if (arr == null) arr = j.optJSONArray("items");
+        if (arr == null) arr = j.optJSONArray("results");
+        if (arr == null) return out;
+        for (int i = 0; i < arr.length(); i++) {
+            Object o = arr.opt(i);
+            String s = o instanceof JSONObject ? J.s((JSONObject) o, "text", J.s((JSONObject) o, "phrase")) : (o == null || o == JSONObject.NULL ? "" : String.valueOf(o));
+            if (!s.isEmpty()) out.add(s);
+        }
+        return out;
     }
 
     private void run(String q) {
         if (q.isEmpty()) return;
-        query = q; csePage = 1;
+        query = q;
         sugg.removeAllViews(); a.hideKeyboard();
         results.removeAllViews(); results.addView(Ui.loading(c));
         final int my = ++token;
         switch (tab) {
             case "images": images(q, my); break;
+            case "videos": videos(q, my); break;
             case "news": articles(q, "news", my); break;
             case "shopping": shopping(q, my); break;
             case "ai": ai(q, my); break;
@@ -215,74 +459,109 @@ final class SearchScreen extends Screen {
         }
     }
 
-    /* ── Web: 360 index first, then Programmable Search (cse-search function), then the rest ── */
+    private boolean safeOff() { return Store.get("safe", "moderate").equals("off"); }
+
+    /* ── Web: native CSE + 360 index + instant answer + related, painted progressively ── */
     private void web(final String q, final int my) {
-        lastError = null;
-        final JSONArray[] edge = {null}, cse = {null};
-        final int[] pending = {2};
-        final Runnable fin = () -> {
-            if (--pending[0] > 0 || my != token) return;
-            renderWeb(merge(edge[0], cse[0]), cse[0] != null && cse[0].length() > 0);
-        };
-        async(() -> Api.fn("search", "POST", null, new JSONObject().put("q", q).put("tab", "web").put("safe", Store.get("safe", "moderate"))), (j, e) -> {
-            if (j != null) edge[0] = j.optJSONArray("web");
-            if (e != null && my == token) lastError = e;
-            fin.run();
+        cseHits = new ArrayList<>(); edgeHits = new ArrayList<>();
+        cseDone = edgeDone = cseViaFn = cseMore = false;
+        count = time = ""; cseNext = 10; kp = null; related = new ArrayList<>(); webError = null;
+        if (paintLater != null) h.removeCallbacks(paintLater);
+
+        async(() -> Cse.searchAny(q, 0, safeOff(), false), (p, e) -> {
+            if (my != token) return;
+            cseDone = true;
+            if (p != null) { cseHits = p.hits; count = p.count; time = p.time; cseViaFn = p.viaFn; cseMore = p.maxStart >= 10 && !p.hits.isEmpty(); }
+            else webError = e;
+            webArrived(my);
         });
-        async(() -> Api.fn("cse-search", "GET", "q=" + Http.enc(q) + "&start=1", null), (j, e) -> {
-            if (j != null) cse[0] = j.optJSONArray("web");
-            fin.run();
+        async(() -> Api.fn("search", "POST", null, new JSONObject().put("q", q).put("tab", "web").put("safe", Store.get("safe", "moderate"))), (j, e) -> {
+            if (my != token) return;
+            edgeDone = true;
+            if (j != null) {
+                JSONArray arr = j.optJSONArray("web");
+                if (arr != null) for (int i = 0; i < arr.length(); i++) { Hit x = Hit.fromEdge(arr.optJSONObject(i)); if (x != null) edgeHits.add(x); }
+            } else if (webError == null) webError = e;
+            webArrived(my);
+        });
+        async(() -> Knowledge.fetch(q), (k, e) -> { if (my != token) return; kp = k; if (cseDone || edgeDone) paintWeb(); });
+        async(() -> Api.fn("autocomplete", "GET", "q=" + Http.enc(q), null), (j, e) -> {
+            if (my != token || j == null) return;
+            for (String s : suggestionsOf(j)) if (!s.equalsIgnoreCase(q) && related.size() < 6) related.add(s);
+            if (cseDone && edgeDone) paintWeb();
         });
     }
-    private Exception lastError;
 
-    static List<JSONObject> merge(JSONArray edge, JSONArray cse) {
-        List<JSONObject> idx = new ArrayList<>(), rest = new ArrayList<>(), out = new ArrayList<>();
-        if (edge != null) for (int i = 0; i < edge.length(); i++) {
-            JSONObject o = edge.optJSONObject(i);
-            if (o == null || o.optString("url").isEmpty()) continue;
-            if (o.optBoolean("_from360")) idx.add(o); else rest.add(o);
+    /** Paint when both sources are in, or 1.8 s after the first (so 360 index hits can still rank first). */
+    private void webArrived(final int my) {
+        if (cseDone && edgeDone) { if (paintLater != null) h.removeCallbacks(paintLater); paintWeb(); return; }
+        if (paintLater == null || true) {
+            if (paintLater != null) h.removeCallbacks(paintLater);
+            paintLater = () -> { if (my == token) paintWeb(); };
+            h.postDelayed(paintLater, 1800);
         }
-        Collections.sort(idx, new Comparator<JSONObject>() {
-            @Override public int compare(JSONObject x, JSONObject y) { return Double.compare(y.optDouble("_score", 0), x.optDouble("_score", 0)); }
-        });
+    }
+
+    /** 360 index first (best score first), then Google CSE, then remaining edge results; duplicates removed. */
+    static List<Hit> merge(List<Hit> edge, List<Hit> cse) {
+        List<Hit> idx = new ArrayList<>(), rest = new ArrayList<>(), out = new ArrayList<>();
+        for (Hit x : edge) (x.from360 ? idx : rest).add(x);
+        Collections.sort(idx, new Comparator<Hit>() { @Override public int compare(Hit x, Hit y) { return Double.compare(y.score, x.score); } });
         Set<String> seen = new HashSet<>();
-        List<JSONObject> cseL = new ArrayList<>();
-        if (cse != null) for (int i = 0; i < cse.length(); i++) { JSONObject o = cse.optJSONObject(i); if (o != null && !o.optString("url").isEmpty()) cseL.add(o); }
-        for (List<JSONObject> group : new List[]{idx, cseL, rest}) {
-            for (JSONObject o : group) if (seen.add(norm(o.optString("url")))) out.add(o);
-        }
+        for (List<Hit> g : java.util.Arrays.asList(idx, cse, rest)) for (Hit x : g) if (seen.add(norm(x.url))) out.add(x);
         return out;
     }
-    static String norm(String u) { return u.toLowerCase().replaceFirst("^https?://(www\\.)?", "").replaceFirst("[/#?]+$", ""); }
+    static String norm(String u) { return u.toLowerCase(java.util.Locale.US).replaceFirst("^https?://(www\\.)?", "").replaceFirst("[/#?]+$", ""); }
 
-    private void renderWeb(List<JSONObject> list, boolean canMore) {
+    private void paintWeb() {
         results.removeAllViews();
-        if (list.isEmpty()) {
-            results.addView(Ui.state(c, lastError != null ? "alert" : "search", lastError != null ? "Couldn't search" : "No results", lastError != null ? msg(lastError) : "Try different keywords."));
-            return;
+        List<Hit> merged = merge(edgeHits, cseHits);
+        if (kp != null) results.addView(kp.card(this, s -> { suppressSugg = true; box.setText(s); suppressSugg = false; run(s); }));
+        if (!count.isEmpty()) results.addView(Ui.text(c, "About " + count + " results" + (time.isEmpty() ? "" : "  \u2022  " + time + " s"), 12, Ui.MUT, false), Ui.lp(Ui.WRAP, Ui.WRAP, 2, 0, 0, 8));
+        if (merged.isEmpty() && cseDone && edgeDone) {
+            results.addView(Ui.state(c, webError != null ? "alert" : "search", webError != null ? "Couldn't search" : "No results", webError != null ? msg(webError) : "Try different keywords."));
         }
-        for (JSONObject o : list) results.addView(Rows.web(this, o));
-        if (canMore) {
+        for (Hit x : merged) results.addView(ResultUi.card(this, x));
+        if (!(cseDone && edgeDone)) results.addView(Ui.loading(c));
+        if (cseDone && cseMore) {
             final TextView more = Ui.button(c, "More results", 1);
             more.setOnClickListener(v -> loadMore(more));
             results.addView(more);
         }
+        if (cseDone && edgeDone && !related.isEmpty()) {
+            results.addView(Ui.label(c, "Related searches"));
+            for (final String r : related) {
+                LinearLayout row = Ui.hbox(c);
+                row.setBackground(Ui.ripple(Ui.shape(Ui.CARD, 12, Ui.LINE)));
+                row.setPadding(Ui.dp(14), Ui.dp(12), Ui.dp(14), Ui.dp(12));
+                row.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 6));
+                row.setClickable(true);
+                row.addView(Ui.icon(c, "search", 16, Ui.MUT), Ui.lp(Ui.dp(16), Ui.dp(16), 0, 0, 12, 0));
+                row.addView(Ui.text(c, r, 14.5f, Ui.TXT, false));
+                row.setOnClickListener(v -> { suppressSugg = true; box.setText(r); suppressSugg = false; run(r); });
+                results.addView(row);
+            }
+        }
     }
 
     private void loadMore(final TextView btn) {
-        csePage++;
-        final int start = (csePage - 1) * 10 + 1, my = token;
+        final int my = token, start = cseNext;
         btn.setEnabled(false); btn.setText("Loading\u2026");
-        async(() -> Api.fn("cse-search", "GET", "q=" + Http.enc(query) + "&start=" + start, null), (j, e) -> {
+        async(() -> Cse.searchAny(query, start, safeOff(), cseViaFn), (p, e) -> {
             if (my != token) return;
-            results.removeView(btn);
-            JSONArray arr = j == null ? null : j.optJSONArray("web");
-            if (arr == null || arr.length() == 0) return;
-            for (int i = 0; i < arr.length(); i++) if (arr.optJSONObject(i) != null) results.addView(Rows.web(this, arr.optJSONObject(i)));
-            TextView more = Ui.button(c, "More results", 1);
-            more.setOnClickListener(v -> loadMore(more));
-            results.addView(more);
+            if (p == null || p.hits.isEmpty()) cseMore = false;
+            else { cseHits.addAll(p.hits); cseNext += 10; cseMore = p.maxStart >= cseNext || p.viaFn; }
+            paintWeb();
+        });
+    }
+
+    private void videos(final String q, final int my) {
+        async(() -> Cse.searchAny(q + " (site:youtube.com OR site:vimeo.com OR site:tiktok.com)", 0, safeOff(), false), (p, e) -> {
+            if (my != token) return;
+            results.removeAllViews();
+            if (e != null || p == null) { results.addView(Ui.state(c, "alert", "Couldn't load videos", msg(e))); return; }
+            if (p.hits.isEmpty()) { results.addView(Ui.state(c, "video", "No videos found", "Try different keywords.")); return; }
+            for (Hit x : p.hits) results.addView(ResultUi.video(this, x));
         });
     }
 
@@ -309,7 +588,7 @@ final class SearchScreen extends Screen {
     }
 
     private void images(final String q, final int my) {
-        final String safe = Store.get("safe", "moderate").equals("off") ? "off" : "active";
+        final String safe = safeOff() ? "off" : "active";
         async(() -> {
             JSONArray all = new JSONArray(); Set<String> seen = new HashSet<>();
             for (int start : new int[]{1, 11}) {
@@ -318,7 +597,7 @@ final class SearchScreen extends Screen {
                     JSONArray it = j.optJSONArray("items");
                     if (it != null) for (int i = 0; i < it.length(); i++) {
                         JSONObject o = it.optJSONObject(i);
-                        if (o != null && !o.optString("src").isEmpty() && seen.add(o.optString("src"))) all.put(o);
+                        if (o != null && !J.s(o, "src").isEmpty() && seen.add(J.s(o, "src"))) all.put(o);
                     }
                 } catch (Exception ex) { if (start == 1) throw ex; }
             }
@@ -341,11 +620,11 @@ final class SearchScreen extends Screen {
                 iv.setBackground(Ui.shape(Ui.LINE, 11, 0));
                 iv.setClipToOutline(true);
                 iv.setMinimumHeight(Ui.dp(90));
-                iv.setContentDescription(o.optString("alt"));
+                iv.setContentDescription(J.s(o, "alt"));
                 iv.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 8));
                 iv.setOnClickListener(v -> a.push(new ImageViewerScreen(o)));
                 col[i % 2].addView(iv);
-                Img.load(o.optString("src"), iv);
+                Img.load(J.s(o, "src"), iv);
             }
             results.addView(cols);
         });
@@ -357,13 +636,13 @@ final class SearchScreen extends Screen {
             results.removeAllViews();
             if (e != null) { results.addView(Ui.state(c, "alert", "AI answer unavailable", msg(e))); return; }
             String ans = "";
-            for (String k : new String[]{"reply", "response", "content", "text", "message", "answer"}) if (!j.optString(k).isEmpty()) { ans = j.optString(k); break; }
+            for (String k : new String[]{"reply", "response", "content", "text", "message", "answer"}) if (!J.s(j, k).isEmpty()) { ans = J.s(j, k); break; }
             LinearLayout card = Ui.card(c);
             card.addView(Ui.text(c, "AI ANSWER", 11, Ui.ACC, true));
-            TextView t = Ui.text(c, ans.isEmpty() ? "No answer returned." : ans, 15, Ui.TXT, false);
-            t.setLineSpacing(0, 1.3f);
-            t.setTextIsSelectable(true);
-            card.addView(t, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 8, 0, 0));
+            LinearLayout body = Ui.vbox(c);
+            body.setPadding(0, Ui.dp(8), 0, 0);
+            MdView.render(this, body, ans.isEmpty() ? "No answer returned." : ans, Ui.TXT, 15);
+            card.addView(body);
             results.addView(card);
             results.addView(Ui.text(c, "AI can make mistakes. Check important information.", 11.5f, Ui.MUT, false));
         });
@@ -374,7 +653,7 @@ final class SearchScreen extends Screen {
 final class ImageViewerScreen extends Screen {
     private final JSONObject o;
     ImageViewerScreen(JSONObject o) { this.o = o; }
-    @Override String title() { return Auth.firstNonEmpty(o.optString("displayUrl"), Rows.hostOf(o.optString("href")), "Image"); }
+    @Override String title() { return Auth.firstNonEmpty(J.s(o, "displayUrl"), Rows.hostOf(J.s(o, "href")), "Image"); }
     @Override View build() {
         LinearLayout l = Ui.vbox(c);
         l.setBackgroundColor(0xFF000000);
@@ -382,14 +661,14 @@ final class ImageViewerScreen extends Screen {
         ImageView iv = new ImageView(c);
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
         l.addView(iv, new LinearLayout.LayoutParams(Ui.MATCH, 0, 1f));
-        Img.load(o.optString("src"), iv);
-        TextView cap = Ui.text(c, o.optString("alt"), 13, 0xFFFFFFFF, false);
+        Img.load(J.s(o, "src"), iv);
+        TextView cap = Ui.text(c, J.s(o, "alt"), 13, 0xFFFFFFFF, false);
         cap.setPadding(Ui.dp(16), Ui.dp(8), Ui.dp(16), Ui.dp(8));
         l.addView(cap);
-        if (!o.optString("href").isEmpty()) {
+        if (!J.s(o, "href").isEmpty()) {
             TextView b = Ui.button(c, "View source page", 0);
             b.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 16, 0, 16, 16));
-            b.setOnClickListener(v -> a.push(new ReaderScreen(o.optString("href"), o.optString("alt"))));
+            b.setOnClickListener(v -> a.push(new ReaderScreen(J.s(o, "href"), J.s(o, "alt"))));
             l.addView(b);
         }
         return l;
