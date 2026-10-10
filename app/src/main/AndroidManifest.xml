@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Timer: vibrate, notify when a session ends, and wake at the exact end time -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
 
     <application
         android:allowBackup="false"
@@ -36,6 +41,8 @@
                 <data android:scheme="three60app" android:host="auth-callback" />
             </intent-filter>
         </activity>
+
+        <receiver android:name=".TimerReceiver" android:exported="false" />
 
     </application>
 </manifest>

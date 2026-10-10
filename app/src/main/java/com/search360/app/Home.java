@@ -96,6 +96,7 @@ final class Tiles {
     static final String[][] TOOLS = {
         {"Weather", "sun"}, {"News", "news"}, {"Stocks", "trend"}, {"Maps", "map"},
         {"Translate", "translate"}, {"Shorten", "link"}, {"Notes", "note"}, {"Docs", "doc"}, {"Timer", "clock"},
+        {"Chat", "chat"}, {"To-Do", "list"}, {"Draw", "pen"},
     };
 
     static Screen make(int i) {
@@ -108,7 +109,10 @@ final class Tiles {
             case 5: return new ShortenerScreen();
             case 6: return new NotesScreen();
             case 7: return new DocsScreen();
-            default: return new PomodoroScreen();
+            case 8: return new TimerScreen();
+            case 9: return new ChatHomeScreen();
+            case 10: return new TodoScreen();
+            default: return new DrawListScreen();
         }
     }
 

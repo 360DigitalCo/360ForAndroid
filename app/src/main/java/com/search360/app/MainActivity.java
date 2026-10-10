@@ -260,6 +260,7 @@ public class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); setIntent(i); handleIntent(i); }
 
     private void handleIntent(Intent i) {
+        if (i != null && "timer".equals(i.getStringExtra("open"))) { i.removeExtra("open"); push(new TimerScreen()); return; }
         if (i == null || i.getData() == null || !"three60app".equals(i.getData().getScheme())) return;
         final Uri u = i.getData();
         setIntent(new Intent());   // consume so a rotation does not replay it
