@@ -239,26 +239,10 @@ final class AccountScreen extends Screen {
             Mail.address(this, (v, e) -> addr.setText(v == null ? "360Mail address: not set up" : "360Mail address: " + v));
         }
 
-        l.addView(Ui.label(c, "Appearance"));
-        final String cur = Store.get("theme", "system");
-        LinearLayout seg = Ui.hbox(c);
-        String[][] opts = {{"system", "System"}, {"light", "Light"}, {"dark", "Dark"}};
-        for (final String[] o : opts) {
-            TextView chip = Ui.chip(c, o[1], cur.equals(o[0]));
-            chip.setOnClickListener(v -> { Store.put("theme", o[0]); a.recreate(); });
-            seg.addView(chip);
-        }
-        l.addView(seg);
-
-        l.addView(Ui.label(c, "Units"));
-        LinearLayout u = Ui.hbox(c);
-        final String unit = Weather.unit();
-        for (final String o : new String[]{"F", "C"}) {
-            TextView chip = Ui.chip(c, "\u00B0" + o, unit.equals(o));
-            chip.setOnClickListener(v -> { Store.put("unit", o); a.toast("Units set to \u00B0" + o); a.recreate(); });
-            u.addView(chip);
-        }
-        l.addView(u);
+        TextView st = Ui.button(c, "Settings", 1);
+        st.setOnClickListener(v -> a.push(new SettingsScreen()));
+        l.addView(Ui.spacer(c, 8));
+        l.addView(st);
 
         l.addView(Ui.label(c, "Privacy"));
         LinearLayout p = Ui.card(c);

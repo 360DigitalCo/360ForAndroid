@@ -175,23 +175,52 @@ final class Cse {
         token = cfg[0]; ver = cfg[1]; tokenAt = System.currentTimeMillis();
     }
 
-    /** Blocking. Retries once with a fresh token. */
-    static Page search(String q, int start, boolean safeOff) throws Exception {
+    /** One element-endpoint call (optionally image mode). Retries once with a fresh token. Returns unwrapped JSON. */
+    private static String fetch(String q, int start, boolean safeOff, boolean images) throws Exception {
         Exception last = null;
         for (int attempt = 0; attempt < 2; attempt++) {
             try {
                 ensureToken(attempt > 0);
                 String url = "https://cse.google.com/cse/element/v1?rsz=filtered_cse&num=10&hl=en&source=gcsc&cselibv=" + Http.enc(ver)
                         + "&cx=" + CX + "&q=" + Http.enc(q) + "&safe=" + (safeOff ? "off" : "active")
-                        + "&cse_tok=" + Http.enc(token) + "&sort=&exp=cc&start=" + start
+                        + "&cse_tok=" + Http.enc(token) + "&sort=&exp=cc&start=" + start + (images ? "&searchtype=image" : "")
                         + "&callback=google.search.cse.api1&rurl=" + Http.enc(PAGE);
                 Http.Resp r = Http.request("GET", url, hdr(), null);
                 String j = unwrap(r.body);
-                if (r.code == 200 && !j.isEmpty()) return parse(j);
+                if (r.code == 200 && !j.isEmpty()) return j;
                 last = new Exception("Google search returned " + r.code);
             } catch (Exception e) { last = e; }
         }
         throw last != null ? last : new Exception("Google search is unavailable right now");
+    }
+
+    /** Blocking web search. */
+    static Page search(String q, int start, boolean safeOff) throws Exception { return parse(fetch(q, start, safeOff, false)); }
+
+    /** Blocking image search. Items: {src, thumb, href, alt, displayUrl}. */
+    static List<JSONObject> searchImages(String q, int start, boolean safeOff) throws Exception { return parseImages(fetch(q, start, safeOff, true)); }
+
+    /** Image results from the element endpoint. Tolerant of missing fields. */
+    static List<JSONObject> parseImages(String json) throws Exception {
+        List<JSONObject> out = new ArrayList<>();
+        JSONArray rs = new JSONObject(json).optJSONArray("results");
+        if (rs == null) return out;
+        for (int i = 0; i < rs.length(); i++) {
+            JSONObject r = rs.optJSONObject(i);
+            if (r == null) continue;
+            JSONObject im = r.optJSONObject("image");
+            String src = https(im != null ? J.s(im, "url", J.s(r, "unescapedUrl", J.s(r, "url"))) : J.s(r, "unescapedUrl", J.s(r, "url")));
+            if (src.isEmpty()) continue;
+            String thumb = https(im != null ? J.s(im, "thumbnailUrl") : "");
+            String ctx = J.s(r, "originalContextUrl", im != null ? J.s(im, "contextUrl", J.s(r, "contextUrl")) : J.s(r, "contextUrl"));
+            String visible = J.s(r, "visibleUrl");
+            String href = ctx.startsWith("http") ? ctx : visible.isEmpty() ? "" : "https://" + visible;
+            String alt = J.s(r, "titleNoFormatting");
+            if (alt.isEmpty()) alt = J.s(r, "contentNoFormatting");
+            if (alt.isEmpty()) alt = Rows.stripTags(J.s(r, "title"));
+            out.add(new JSONObject().put("src", src).put("thumb", thumb.isEmpty() ? src : thumb).put("href", href).put("alt", alt).put("displayUrl", visible));
+        }
+        return out;
     }
 
     /** Native element endpoint first; if Google changes it, fall back to the optional server function. */

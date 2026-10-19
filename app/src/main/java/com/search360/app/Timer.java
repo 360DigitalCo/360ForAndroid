@@ -33,7 +33,7 @@ final class TimerModel {
 
     // settings
     int focusMin = 25, shortMin = 5, longMin = 15, longEvery = 4, goal = 8, vibStrength = 1;
-    boolean autoBreak, autoFocus, vibrate = true, sound = true, alarmSound, notify = true, keepAwake = true;
+    boolean autoBreak, autoFocus, vibrate = true, sound = true, alarmSound, notify = true, keepAwake = true, ongoing = true, alwaysShow;
     // state
     int mode = FOCUS, cycle = 0, doneToday = 0;
     long endAt = 0, remainMs = 25 * 60000L, alertedEnd = 0, focusMsToday = 0;
@@ -76,7 +76,7 @@ final class TimerModel {
     JSONObject toJson() {
         try {
             return new JSONObject().put("fm", focusMin).put("sm", shortMin).put("lm", longMin).put("le", longEvery).put("goal", goal).put("vs", vibStrength)
-                .put("ab", autoBreak).put("af", autoFocus).put("vib", vibrate).put("snd", sound).put("alm", alarmSound).put("ntf", notify).put("ka", keepAwake)
+                .put("ab", autoBreak).put("af", autoFocus).put("vib", vibrate).put("snd", sound).put("alm", alarmSound).put("ntf", notify).put("ka", keepAwake).put("og", ongoing).put("as", alwaysShow)
                 .put("mode", mode).put("cyc", cycle).put("done", doneToday).put("end", endAt).put("rem", remainMs).put("ale", alertedEnd)
                 .put("fms", focusMsToday).put("run", running).put("day", day);
         } catch (Exception e) { return new JSONObject(); }
@@ -88,7 +88,7 @@ final class TimerModel {
             m.focusMin = clamp(j.optInt("fm", 25), 1, 180); m.shortMin = clamp(j.optInt("sm", 5), 1, 60); m.longMin = clamp(j.optInt("lm", 15), 1, 90);
             m.longEvery = clamp(j.optInt("le", 4), 2, 12); m.goal = clamp(j.optInt("goal", 8), 1, 30); m.vibStrength = clamp(j.optInt("vs", 1), 0, 2);
             m.autoBreak = j.optBoolean("ab"); m.autoFocus = j.optBoolean("af"); m.vibrate = j.optBoolean("vib", true); m.sound = j.optBoolean("snd", true);
-            m.alarmSound = j.optBoolean("alm"); m.notify = j.optBoolean("ntf", true); m.keepAwake = j.optBoolean("ka", true);
+            m.alarmSound = j.optBoolean("alm"); m.notify = j.optBoolean("ntf", true); m.keepAwake = j.optBoolean("ka", true); m.ongoing = j.optBoolean("og", true); m.alwaysShow = j.optBoolean("as");
             m.mode = clamp(j.optInt("mode"), 0, 2); m.cycle = Math.max(0, j.optInt("cyc")); m.doneToday = Math.max(0, j.optInt("done"));
             m.endAt = j.optLong("end"); m.remainMs = j.optLong("rem", m.durMs(m.mode)); m.alertedEnd = j.optLong("ale");
             m.focusMsToday = j.optLong("fms"); m.running = j.optBoolean("run"); m.day = j.optString("day", "");
@@ -110,6 +110,14 @@ final class TimerCore {
         return m;
     }
     static void save(TimerModel m) { Store.put("tm", m.toJson().toString()); }
+
+    /** Persist, (re)schedule the end-of-session alarm and refresh the ongoing notification. */
+    static void apply(Context c, TimerModel m) { save(m); schedule(c, m); TimerNotif.update(c, m); }
+
+    /** Actions triggered from the notification buttons (the app may not be open). */
+    static synchronized void toggle(Context c) { TimerModel m = load(); long now = System.currentTimeMillis(); if (m.running) m.pause(now); else m.start(now); apply(c, m); }
+    static synchronized void skip(Context c) { TimerModel m = load(); m.skip(System.currentTimeMillis()); apply(c, m); }
+    static synchronized void reset(Context c) { TimerModel m = load(); m.reset(); apply(c, m); }
 
     private static PendingIntent pi(Context c) {
         return PendingIntent.getBroadcast(c, 7001, new Intent(c, TimerReceiver.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -137,10 +145,61 @@ final class TimerCore {
         boolean doAlert = alert && m.endAt != m.alertedEnd;
         m.alertedEnd = m.endAt;
         m.complete(now);
-        save(m);
-        schedule(c, m);
+        apply(c, m);
         if (doAlert) TimerAlert.fire(c, finished, m);
         return true;
+    }
+}
+
+/** The persistent "timer" notification: live countdown + Pause/Resume, Skip, Reset. */
+final class TimerNotif {
+    static final int ID = 7003;
+    static final String ACT_TOGGLE = "com.search360.app.TIMER_TOGGLE", ACT_SKIP = "com.search360.app.TIMER_SKIP", ACT_RESET = "com.search360.app.TIMER_RESET";
+
+    /** Running, or paused part-way through a session. */
+    static boolean active(TimerModel m) { return m.running || m.remainMs < m.durMs(m.mode); }
+
+    private static PendingIntent act(Context c, String action, int code) {
+        Intent i = new Intent(c, TimerReceiver.class).setAction(action);
+        return PendingIntent.getBroadcast(c, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    static void update(Context c, TimerModel m) {
+        try {
+            NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
+            if (!m.ongoing || !(active(m) || m.alwaysShow)) { nm.cancel(ID); return; }
+            Notification.Builder b;
+            if (Build.VERSION.SDK_INT >= 26) {
+                Class<?> cc = Class.forName("android.app.NotificationChannel");
+                Object ch = cc.getConstructor(String.class, CharSequence.class, int.class).newInstance("timer_ongoing", "Running timer", 2);   // low importance: silent
+                cc.getMethod("setShowBadge", boolean.class).invoke(ch, false);
+                NotificationManager.class.getMethod("createNotificationChannel", cc).invoke(nm, ch);
+                b = Notification.Builder.class.getConstructor(Context.class, String.class).newInstance(c, "timer_ongoing");
+            } else b = new Notification.Builder(c);
+            long now = System.currentTimeMillis();
+            long rem = m.remaining(now);
+            boolean paused = !m.running && active(m);
+            String title = TimerModel.NAMES[m.mode] + (m.running ? "" : paused ? " (paused)" : " (ready)");
+            String text;
+            if (m.running) text = "Ends at " + new SimpleDateFormat("h:mm a", Locale.getDefault()).format(new Date(m.endAt));
+            else text = String.format(Locale.US, "%02d:%02d left", (rem + 999) / 60000, ((rem + 999) / 1000) % 60);
+            Intent open = new Intent(c, MainActivity.class).putExtra("open", "timer").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            b.setSmallIcon(c.getApplicationInfo().icon).setContentTitle(title).setContentText(text).setOngoing(true).setOnlyAlertOnce(true)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setContentIntent(PendingIntent.getActivity(c, 7004, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            if (m.running) {
+                b.setWhen(m.endAt).setShowWhen(true).setUsesChronometer(true);
+                try { Notification.Builder.class.getMethod("setChronometerCountDown", boolean.class).invoke(b, true); } catch (Exception ignored) { }   // API 24+
+                b.addAction(0, "Pause", act(c, ACT_TOGGLE, 7010));
+                b.addAction(0, "Skip", act(c, ACT_SKIP, 7011));
+            } else {
+                b.setShowWhen(false);
+                b.addAction(0, paused ? "Resume" : "Start", act(c, ACT_TOGGLE, 7010));
+                if (paused) b.addAction(0, "Reset", act(c, ACT_RESET, 7012)); else b.addAction(0, "Skip", act(c, ACT_SKIP, 7011));
+            }
+            nm.notify(ID, b.build());
+        } catch (Exception ignored) { }
     }
 }
 
@@ -210,7 +269,9 @@ final class TimerScreen extends Screen {
         @Override public void run() {
             if (!alive) return;
             long now = System.currentTimeMillis();
-            if (m.due(now)) { TimerCore.finishIfDue(c, true); m = TimerCore.load(); refresh(true); }
+            String raw = Store.get("tm", "");
+            if (!raw.equals(lastRaw)) { lastRaw = raw; m = TimerCore.load(); refresh(true); }      // changed from the notification
+            if (m.due(now)) { TimerCore.finishIfDue(c, true); m = TimerCore.load(); lastRaw = Store.get("tm", ""); refresh(true); }
             else refresh(false);
             h.postDelayed(this, 250);
         }
@@ -220,6 +281,7 @@ final class TimerScreen extends Screen {
     @Override View build() {
         TimerCore.finishIfDue(c, false);       // anything that finished while the screen was closed
         m = TimerCore.load();
+        lastRaw = Store.get("tm", "");
         LinearLayout l = col();
         l.setGravity(Gravity.CENTER_HORIZONTAL);
 
@@ -280,6 +342,11 @@ final class TimerScreen extends Screen {
             m.notify = v; persist();
             if (v && Build.VERSION.SDK_INT >= 33) a.requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 8);
         }));
+        al.addView(toggle("Persistent notification", "Live countdown with Pause, Skip and Reset while a timer is active", m.ongoing, v -> {
+            m.ongoing = v; persist();
+            if (v && Build.VERSION.SDK_INT >= 33) a.requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 8);
+        }));
+        al.addView(toggle("Show when idle", "Keep the notification even when no timer is running", m.alwaysShow, v -> { m.alwaysShow = v; persist(); }));
         l.addView(al);
 
         l.addView(Ui.label(c, "Behaviour"));
@@ -299,7 +366,8 @@ final class TimerScreen extends Screen {
         if (m.running) m.pause(now); else m.start(now);
         persist(); refresh(true);
     }
-    private void persist() { TimerCore.save(m); TimerCore.schedule(c, m); }
+    private void persist() { TimerCore.apply(c, m); lastRaw = Store.get("tm", ""); }
+    private String lastRaw = "";
 
     private void refresh(boolean full) {
         long now = System.currentTimeMillis();

@@ -223,7 +223,7 @@ final class ResultUi {
     }
 
     static void open(Screen s, Hit h) {
-        if (h.kind.equals("video")) s.a.openExternal(h.url);
+        if (h.kind.equals("video") || "browser".equals(Store.get("open", "reader"))) s.a.openExternal(h.url);
         else s.a.push(new ReaderScreen(h.url, h.title));
     }
 
@@ -587,47 +587,82 @@ final class SearchScreen extends Screen {
         });
     }
 
+    // image-tab state
+    private LinearLayout[] imgCols;
+    private int imgIndex, imgNext;
+    private boolean imgViaCse;
+
     private void images(final String q, final int my) {
-        final String safe = safeOff() ? "off" : "active";
-        async(() -> {
-            JSONArray all = new JSONArray(); Set<String> seen = new HashSet<>();
-            for (int start : new int[]{1, 11}) {
-                try {
-                    JSONObject j = Api.fn("image-search", "GET", "q=" + Http.enc(q) + "&start=" + start + "&safe=" + safe, null);
-                    JSONArray it = j.optJSONArray("items");
-                    if (it != null) for (int i = 0; i < it.length(); i++) {
-                        JSONObject o = it.optJSONObject(i);
-                        if (o != null && !J.s(o, "src").isEmpty() && seen.add(J.s(o, "src"))) all.put(o);
-                    }
-                } catch (Exception ex) { if (start == 1) throw ex; }
-            }
-            return all;
-        }, (arr, e) -> {
+        imgCols = null; imgIndex = 0; imgNext = 0; imgViaCse = false;
+        async(() -> loadImages(q, 0), (arr, e) -> {
             if (my != token) return;
             results.removeAllViews();
             if (e != null) { results.addView(Ui.state(c, "alert", "Couldn't load images", msg(e))); return; }
-            if (arr.length() == 0) { results.addView(Ui.state(c, "image", "No images found", "Try different keywords.")); return; }
+            if (arr.isEmpty()) { results.addView(Ui.state(c, "image", "No images found", "Try different keywords.")); return; }
+            imgNext = imgViaCse ? 10 : 0;
+            appendImages(arr);
+        });
+    }
+
+    /** Google CSE first (what the website uses); the 360 image function only if CSE is unreachable. */
+    private List<JSONObject> loadImages(String q, int start) throws Exception {
+        if (start == 0 || imgViaCse) {
+            try {
+                List<JSONObject> l = Cse.searchImages(q, start, safeOff());
+                if (!l.isEmpty()) { imgViaCse = true; return l; }
+            } catch (Exception ex) { if (start > 0) throw ex; }
+        }
+        if (start > 0) return new ArrayList<>();
+        imgViaCse = false;
+        String safe = safeOff() ? "off" : "active";
+        List<JSONObject> out = new ArrayList<>(); Set<String> seen = new HashSet<>();
+        for (int st : new int[]{1, 11}) {
+            try {
+                JSONObject j = Api.fn("image-search", "GET", "q=" + Http.enc(q) + "&start=" + st + "&safe=" + safe, null);
+                JSONArray it = j.optJSONArray("items");
+                if (it != null) for (int i = 0; i < it.length(); i++) { JSONObject o = it.optJSONObject(i); if (o != null && !J.s(o, "src").isEmpty() && seen.add(J.s(o, "src"))) out.add(o); }
+            } catch (Exception ex) { if (st == 1) throw ex; }
+        }
+        return out;
+    }
+
+    private void appendImages(List<JSONObject> arr) {
+        if (imgCols == null) {
+            results.removeAllViews();
             LinearLayout cols = Ui.hbox(c);
             cols.setGravity(Gravity.TOP);
-            LinearLayout[] col = {Ui.vbox(c), Ui.vbox(c)};
-            for (int k = 0; k < 2; k++) cols.addView(col[k], Ui.lp(0, Ui.WRAP, k == 0 ? 0 : 4, 0, k == 0 ? 4 : 0, 0));
-            for (int k = 0; k < 2; k++) ((LinearLayout.LayoutParams) col[k].getLayoutParams()).weight = 1f;
-            for (int i = 0; i < arr.length(); i++) {
-                final JSONObject o = arr.optJSONObject(i);
-                ImageView iv = new ImageView(c);
-                iv.setAdjustViewBounds(true);
-                iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                iv.setBackground(Ui.shape(Ui.LINE, 11, 0));
-                iv.setClipToOutline(true);
-                iv.setMinimumHeight(Ui.dp(90));
-                iv.setContentDescription(J.s(o, "alt"));
-                iv.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 8));
-                iv.setOnClickListener(v -> a.push(new ImageViewerScreen(o)));
-                col[i % 2].addView(iv);
-                Img.load(J.s(o, "src"), iv);
-            }
+            imgCols = new LinearLayout[]{Ui.vbox(c), Ui.vbox(c)};
+            for (int k = 0; k < 2; k++) { cols.addView(imgCols[k], Ui.lp(0, Ui.WRAP, k == 0 ? 0 : 4, 0, k == 0 ? 4 : 0, 0)); ((LinearLayout.LayoutParams) imgCols[k].getLayoutParams()).weight = 1f; }
             results.addView(cols);
-        });
+        } else if (results.getChildCount() > 1) results.removeViewAt(results.getChildCount() - 1);   // the old "More images" button
+        for (final JSONObject o : arr) {
+            ImageView iv = new ImageView(c);
+            iv.setAdjustViewBounds(true);
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iv.setBackground(Ui.shape(Ui.LINE, 11, 0));
+            iv.setClipToOutline(true);
+            iv.setMinimumHeight(Ui.dp(90));
+            iv.setContentDescription(J.s(o, "alt"));
+            iv.setLayoutParams(Ui.lp(Ui.MATCH, Ui.WRAP, 0, 0, 0, 8));
+            iv.setOnClickListener(v -> a.push(new ImageViewerScreen(o)));
+            imgCols[imgIndex++ % 2].addView(iv);
+            Img.load(J.s(o, "thumb", J.s(o, "src")), iv);
+        }
+        if (imgViaCse) {
+            final TextView more = Ui.button(c, "More images", 1);
+            final int my = token;
+            more.setOnClickListener(v -> {
+                more.setEnabled(false); more.setText("Loading\u2026");
+                final int start = imgNext;
+                async(() -> loadImages(query, start), (l, e) -> {
+                    if (my != token) return;
+                    if (e != null || l == null || l.isEmpty()) { more.setText("No more images"); return; }
+                    imgNext += 10;
+                    appendImages(l);
+                });
+            });
+            results.addView(more);
+        }
     }
 
     private void ai(final String q, final int my) {

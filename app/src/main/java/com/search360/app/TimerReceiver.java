@@ -9,6 +9,10 @@ public class TimerReceiver extends BroadcastReceiver {
     @Override public void onReceive(Context ctx, Intent intent) {
         Context app = ctx.getApplicationContext();
         if (Store.p == null) Store.init(app);
-        TimerCore.finishIfDue(app, true);
+        String act = intent == null ? null : intent.getAction();
+        if (TimerNotif.ACT_TOGGLE.equals(act)) TimerCore.toggle(app);
+        else if (TimerNotif.ACT_SKIP.equals(act)) TimerCore.skip(app);
+        else if (TimerNotif.ACT_RESET.equals(act)) TimerCore.reset(app);
+        else TimerCore.finishIfDue(app, true);
     }
 }

@@ -194,6 +194,7 @@ final class AiScreen extends Screen {
             for (int i = 0; i < a.length(); i++) { JSONObject o = a.getJSONObject(i); HISTORY.add(new String[]{o.getString("r"), o.getString("c")}); }
         } catch (Exception ignored) { }
     }
+    static void clearHistory() { HISTORY.clear(); Store.remove("ai_hist"); }
     private static void saveHistory() {
         try {
             JSONArray a = new JSONArray();

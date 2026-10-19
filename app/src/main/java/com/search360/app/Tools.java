@@ -574,7 +574,7 @@ final class StocksScreen extends Screen {
 final class TranslatorScreen extends Screen {
     static final String[] LANGS = ("Auto-Detect,English,Spanish,Mandarin Chinese,French,Arabic,Hindi,Portuguese,Russian,German,Japanese,Italian,Dutch,Polish,Swedish,Norwegian,Danish,Finnish,Greek,Czech,Romanian,Hungarian,Slovak,Bulgarian,Croatian,Serbian,Ukrainian,Catalan,Lithuanian,Latvian,Estonian,Slovenian,Albanian,Macedonian,Maltese,Welsh,Irish,Korean,Vietnamese,Thai,Indonesian,Malay,Filipino,Bengali,Urdu,Punjabi,Tamil,Telugu,Marathi,Gujarati,Kannada,Malayalam,Sinhala,Nepali,Burmese,Khmer,Lao,Mongolian,Tibetan,Turkish,Persian,Hebrew,Kurdish,Swahili,Amharic,Hausa,Yoruba,Igbo,Zulu,Afrikaans,Somali,Azerbaijani,Kazakh,Uzbek,Georgian,Armenian,Latin,Esperanto").split(",");
     private String from = "Auto-Detect", to = "Spanish";
-    private TextView fromBtn, toBtn, result;
+    private TextView fromBtn, toBtn, result, note;
     @Override String title() { return "Translator"; }
 
     @Override View build() {
@@ -599,6 +599,9 @@ final class TranslatorScreen extends Screen {
         result.setTextIsSelectable(true);
         LinearLayout card = Ui.card(c);
         card.addView(result);
+        note = Ui.text(c, "Translated with a public service because the 360 translator could not be reached.", 11.5f, Ui.MUT, false);
+        note.setVisibility(View.GONE);
+        card.addView(note, Ui.lp(Ui.WRAP, Ui.WRAP, 0, 8, 0, 0));
         final TextView copy = Ui.button(c, "Copy translation", 1);
         copy.setOnClickListener(v -> { if (result.getText().length() > 0) copyText(c, result.getText().toString()); a.toast("Copied"); });
         card.addView(copy, Ui.lp(Ui.MATCH, Ui.WRAP, 0, 12, 0, 0));
@@ -609,12 +612,23 @@ final class TranslatorScreen extends Screen {
             if (text.isEmpty()) { a.toast("Enter some text first."); return; }
             if (!from.equals("Auto-Detect") && from.equals(to)) { a.toast("Source and target languages are the same."); return; }
             a.hideKeyboard(); go.setEnabled(false); card.setVisibility(View.VISIBLE); result.setTextColor(Ui.MUT); result.setText("Translating\u2026");
-            async(() -> Api.fn("dynamic-endpoint", "POST", null, new JSONObject().put("text", text).put("from", from).put("to", to)), (j, e) -> {
+            async(() -> {
+                try {
+                    JSONObject j = Api.fn("dynamic-endpoint", "POST", null, new JSONObject().put("text", text).put("from", from).put("to", to));
+                    String t = J.s(j, "translated");
+                    if (t.isEmpty()) throw new Exception("The 360 translator returned nothing.");
+                    return new String[]{t, ""};
+                } catch (Exception ex) {
+                    if (!Translate.fallbackOn()) throw ex;
+                    try { return new String[]{Translate.viaPublic(text, from, to), "public"}; }
+                    catch (Exception ex2) { throw ex; }          // report the original 360 error, it is the one to fix
+                }
+            }, (res, e) -> {
                 go.setEnabled(true);
-                if (e != null) { result.setTextColor(Ui.BAD); result.setText("Translation failed: " + msg(e)); return; }
-                String t = J.s(j, "translated", "");
+                if (e != null) { result.setTextColor(Ui.BAD); result.setText("Translation failed: " + msg(e)); note.setVisibility(View.GONE); return; }
                 result.setTextColor(Ui.TXT);
-                result.setText(t.isEmpty() ? "No translation returned. Please try again." : t);
+                result.setText(res[0]);
+                note.setVisibility(res[1].isEmpty() ? View.GONE : View.VISIBLE);
             });
         });
         return scroll(l);
@@ -689,5 +703,66 @@ final class RingView extends View {
         cv.drawArc(r, -90, 360 * Math.max(0f, Math.min(1f, progress)), false, arc);
         cv.drawText(label, getWidth() / 2f, getHeight() / 2f + Ui.dp(14), tp);
         cv.drawText(sub, getWidth() / 2f, getHeight() / 2f + Ui.dp(44), sp);
+    }
+}
+
+
+/** Public-service fallback for the translator, used only when the 360 function is unreachable (and only if allowed in Settings). */
+final class Translate {
+    static final String[][] CODES = {{"English","en"},{"Spanish","es"},{"Mandarin Chinese","zh-CN"},{"French","fr"},{"Arabic","ar"},{"Hindi","hi"},{"Portuguese","pt"},{"Russian","ru"},{"German","de"},{"Japanese","ja"},{"Italian","it"},{"Dutch","nl"},{"Polish","pl"},{"Swedish","sv"},{"Norwegian","no"},{"Danish","da"},{"Finnish","fi"},{"Greek","el"},{"Czech","cs"},{"Romanian","ro"},{"Hungarian","hu"},{"Slovak","sk"},{"Bulgarian","bg"},{"Croatian","hr"},{"Serbian","sr"},{"Ukrainian","uk"},{"Catalan","ca"},{"Lithuanian","lt"},{"Latvian","lv"},{"Estonian","et"},{"Slovenian","sl"},{"Albanian","sq"},{"Macedonian","mk"},{"Maltese","mt"},{"Welsh","cy"},{"Irish","ga"},{"Korean","ko"},{"Vietnamese","vi"},{"Thai","th"},{"Indonesian","id"},{"Malay","ms"},{"Filipino","tl"},{"Bengali","bn"},{"Urdu","ur"},{"Punjabi","pa"},{"Tamil","ta"},{"Telugu","te"},{"Marathi","mr"},{"Gujarati","gu"},{"Kannada","kn"},{"Malayalam","ml"},{"Sinhala","si"},{"Nepali","ne"},{"Burmese","my"},{"Khmer","km"},{"Lao","lo"},{"Mongolian","mn"},{"Tibetan","bo"},{"Turkish","tr"},{"Persian","fa"},{"Hebrew","he"},{"Kurdish","ku"},{"Swahili","sw"},{"Amharic","am"},{"Hausa","ha"},{"Yoruba","yo"},{"Igbo","ig"},{"Zulu","zu"},{"Afrikaans","af"},{"Somali","so"},{"Azerbaijani","az"},{"Kazakh","kk"},{"Uzbek","uz"},{"Georgian","ka"},{"Armenian","hy"},{"Latin","la"},{"Esperanto","eo"}};
+
+    static boolean fallbackOn() { return !"off".equals(Store.get("fallbacks", "on")); }
+
+    static String codeOf(String lang) {
+        if (lang == null || lang.equals("Auto-Detect")) return "Autodetect";
+        for (String[] c : CODES) if (c[0].equals(lang)) return c[1];
+        return "en";
+    }
+
+    /** Split at line / sentence boundaries into pieces of at most `max` characters (the service limits each request). */
+    static java.util.List<String> chunks(String text, int max) {
+        java.util.List<String> out = new ArrayList<>();
+        for (String line : text.split("\n", -1)) {
+            if (line.trim().isEmpty()) { out.add(""); out.add("\u0000"); continue; }      // keep blank lines (paragraph breaks)
+            String rest = line.trim();
+            while (rest.length() > max) {
+                int cut = -1;
+                for (int i = max; i > max / 2; i--) { char ch = rest.charAt(i - 1); if (ch == '.' || ch == '!' || ch == '?' || ch == ';') { cut = i; break; } }
+                if (cut < 0) { int sp = rest.lastIndexOf(' ', max); cut = sp > max / 3 ? sp : max; }
+                out.add(rest.substring(0, cut).trim());
+                rest = rest.substring(cut).trim();
+            }
+            if (!rest.isEmpty()) out.add(rest);
+            out.add("\u0000");     // marks the end of a source line
+        }
+        return out;
+    }
+
+    static String decode(String s) {
+        String t = HtmlReader.decode(s);
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("&#(\\d+);").matcher(t);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) { try { m.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(String.valueOf((char) Integer.parseInt(m.group(1))))); } catch (Exception e) { m.appendReplacement(sb, ""); } }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
+    static String viaPublic(String text, String from, String to) throws Exception {
+        String pair = codeOf(from) + "|" + codeOf(to);
+        StringBuilder out = new StringBuilder();
+        boolean lineOpen = false;
+        for (String piece : chunks(text, 450)) {
+            if (piece.equals("\u0000")) { out.append('\n'); lineOpen = false; continue; }
+            if (piece.isEmpty()) continue;
+            Http.Resp r = Http.request("GET", "https://api.mymemory.translated.net/get?q=" + Http.enc(piece) + "&langpair=" + Http.enc(pair), null, null);
+            JSONObject j = Api.parse(r.body);
+            JSONObject d = j.optJSONObject("responseData");
+            String t = d == null ? "" : J.s(d, "translatedText");
+            if (r.code != 200 || t.isEmpty() || t.toUpperCase(Locale.US).startsWith("QUERY LENGTH LIMIT") || t.toUpperCase(Locale.US).contains("MYMEMORY WARNING")) throw new Exception("The public translation service is unavailable.");
+            if (lineOpen) out.append(' ');
+            out.append(decode(t));
+            lineOpen = true;
+        }
+        return out.toString().trim();
     }
 }

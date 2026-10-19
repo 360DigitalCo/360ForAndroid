@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 
 /** Null-safe JSON reads. optString() returns the literal text "null" for JSON null, which then shows up in the UI. */
 final class J {
+    static String enc(String s) { try { return java.net.URLEncoder.encode(s, "UTF-8"); } catch (Exception e) { return s; } }
     static String s(JSONObject o, String k) { return s(o, k, ""); }
     static String s(JSONObject o, String k, String def) {
         if (o == null || !o.has(k) || o.isNull(k)) return def;
@@ -164,7 +165,9 @@ final class Api {
 
     static final class ApiError extends IOException {
         final int code;
+        String where = "";      // e.g. "function search" or "table notes", shown when something is not found
         ApiError(int code, String msg) { super(msg); this.code = code; }
+        ApiError at(String w) { where = w; return this; }
     }
 
     /** The website sends BOTH headers; functions that verify JWTs reject apikey-only calls. */
@@ -172,6 +175,7 @@ final class Api {
         Map<String, String> h = new HashMap<>();
         h.put("apikey", ANON);
         h.put("Authorization", "Bearer " + (Auth.access != null ? Auth.access : ANON));
+        h.put("Accept", "application/json");
         if (json) h.put("Content-Type", "application/json");
         return h;
     }
@@ -200,12 +204,12 @@ final class Api {
         JSONObject j = parse(r.body);
         String err = errorOf(j);
         if (r.code >= 400 && err == null) err = Auth.firstNonEmpty(J.s(j, "message"), J.s(j, "msg"), "Request failed (" + r.code + ")");
-        if (r.code >= 400 || err != null) throw new ApiError(r.code, err);
+        if (r.code >= 400 || err != null) throw new ApiError(r.code, err).at("function " + name);
         return j;
     }
 
     /** PostgREST call. `path` like "notes?select=*&order=updated_at.desc". Returns rows (empty for minimal responses). */
-    static JSONArray rest(String method, String path, JSONObject body, boolean returnRows) throws Exception {
+    static JSONArray rest(String method, String path, Object body, boolean returnRows) throws Exception {
         Auth.refreshIfNeeded();
         Map<String, String> h = headers(body != null);
         h.put("Prefer", returnRows ? "return=representation" : "return=minimal");

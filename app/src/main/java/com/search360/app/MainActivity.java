@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
         brand.setLetterSpacing(-0.03f);
         bar.addView(brand, new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
         bar.addView(Ui.iconButton(this, "user", v -> push(new AccountScreen())));
+        bar.addView(Ui.iconButton(this, "sliders", v -> push(new SettingsScreen())));
         bar.addView(Ui.iconButton(this, Ui.dark ? "sun" : "moon", v -> {
             Store.put("theme", Ui.dark ? "light" : "dark");
             recreate();

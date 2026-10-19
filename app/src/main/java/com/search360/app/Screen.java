@@ -48,7 +48,11 @@ abstract class Screen {
         if (m.toLowerCase(java.util.Locale.US).matches(".*all ai providers.*(unavailable|down).*")) return "The AI service is busy right now. Please try again in a moment.";
         if (code == 401 || code == 403 || m.toLowerCase(java.util.Locale.US).contains("jwt"))
             return Auth.signedIn() ? "Your session expired. Sign out and back in, then try again." : "Sign in to use this.";
-        if (code == 404) return "This feature isn't available on the server yet.";
+        if (code == 404) {
+            String w = e instanceof Api.ApiError ? ((Api.ApiError) e).where : "";
+            String detail = m.isEmpty() ? "" : " " + (m.length() > 120 ? m.substring(0, 120) + "\u2026" : m);
+            return "Not found on the server" + (w.isEmpty() ? "" : " (" + w + ")") + "." + detail + " Open Settings > Connection check for details.";
+        }
         if (code == 408 || code == 504) return "The server took too long to respond. Try again.";
         if (code == 429) return "Too many requests. Wait a moment and try again.";
         if (code >= 500) return m.isEmpty() || m.length() > 140 ? "The server had a problem. Try again in a moment." : m;

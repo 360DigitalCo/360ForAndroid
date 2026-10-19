@@ -18,7 +18,11 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,10 +90,40 @@ final class Chat {
             return p;
         }, cb);
     }
+
     static String displayName(JSONObject p) {
         String n = J.s(p, "username");
+        if (n.isEmpty()) n = (J.s(p, "first_name") + " " + J.s(p, "last_name")).trim();
         if (n.isEmpty() && Auth.email != null) n = Auth.email.contains("@") ? Auth.email.substring(0, Auth.email.indexOf('@')) : Auth.email;
         return n.isEmpty() ? "user" : n;
+    }
+
+    /** The columns every message row carries (same as the website's insert). */
+    static JSONObject base(JSONObject p, String text) throws Exception {
+        String av = J.s(p, "avatar_url"), tag = J.s(p, "tag");
+        return new JSONObject().put("user_id", Auth.userId).put("username", displayName(p))
+            .put("avatar_url", av.isEmpty() ? JSONObject.NULL : av).put("tag", tag.isEmpty() ? JSONObject.NULL : tag)
+            .put("role", J.s(p, "role", "user")).put("text", text);
+    }
+
+    /** What a room is and how its messages are scoped, exactly as on the website. */
+    static final class Room {
+        static final int PUBLIC = 0, SERVER = 1, CHANNEL = 2, DM = 3;
+        final int kind; final String id, title;
+        Room(int kind, String id, String title) { this.kind = kind; this.id = id; this.title = title; }
+        String table() { return kind == DM ? "dm_messages" : "messages"; }
+        /** Filter sets, most precise first; later ones drop columns an older database might not have. */
+        String[] scopes() {
+            switch (kind) {
+                case DM: return new String[]{"dm_id=eq." + J.enc(id) + "&deleted_at=is.null", "dm_id=eq." + J.enc(id)};
+                case CHANNEL: return new String[]{"channel_id=eq." + J.enc(id) + "&thread_id=is.null&deleted_at=is.null", "channel_id=eq." + J.enc(id) + "&deleted_at=is.null", "channel_id=eq." + J.enc(id)};
+                case SERVER: return new String[]{"server_id=eq." + J.enc(id) + "&channel_id=is.null&thread_id=is.null&deleted_at=is.null", "server_id=eq." + J.enc(id) + "&channel_id=is.null&deleted_at=is.null", "server_id=eq." + J.enc(id) + "&channel_id=is.null"};
+                default: return new String[]{"channel_id=is.null&server_id=is.null&dm_id=is.null&thread_id=is.null&deleted_at=is.null", "channel_id=is.null&server_id=is.null&thread_id=is.null&deleted_at=is.null", "channel_id=is.null&server_id=is.null&deleted_at=is.null", "channel_id=is.null&server_id=is.null"};
+            }
+        }
+        void scope(JSONObject row) throws Exception {
+            if (kind == DM) row.put("dm_id", id); else if (kind == CHANNEL) row.put("channel_id", id); else if (kind == SERVER) row.put("server_id", id);
+        }
     }
 }
 
@@ -98,17 +132,35 @@ final class ChatHomeScreen extends Screen {
     @Override String title() { return "Chat"; }
     @Override View build() { holder = new FrameLayout(c); render(); return holder; }
     @Override void onAuth() { Chat.me = null; if (holder != null) render(); }
+    @Override void onShow() { if (Auth.signedIn() && holder != null && holder.getChildCount() > 0) render(); }
 
     private void render() {
         holder.removeAllViews();
         LinearLayout l = col();
         if (!Auth.signedIn()) { l.addView(AuthView.build(this, "Sign in to join conversations.")); holder.addView(scroll(l)); return; }
-        l.addView(roomRow("General", "Everyone on 360", "hash", () -> a.push(new ChatRoomScreen("General", null, null))));
-        final LinearLayout list = Ui.vbox(c);
-        l.addView(Ui.label(c, "Your servers"));
-        l.addView(list);
-        list.addView(Ui.loading(c));
+
+        LinearLayout head = Ui.hbox(c);
+        head.addView(Ui.label(c, "Direct messages"), new LinearLayout.LayoutParams(0, Ui.WRAP, 1f));
+        TextView nu = Ui.chip(c, "New message", true);
+        nu.setLayoutParams(Ui.lp(Ui.WRAP, Ui.WRAP, 0, 8, 0, 0));
+        nu.setOnClickListener(v -> newDm());
+        head.addView(nu);
+        l.addView(head);
+        final LinearLayout dms = Ui.vbox(c);
+        dms.addView(Ui.loading(c));
+        l.addView(dms);
+
+        l.addView(Ui.label(c, "Rooms"));
+        l.addView(roomRow("General", "Everyone on 360", "hash", () -> a.push(new ChatRoomScreen(new Chat.Room(Chat.Room.PUBLIC, null, "General")))));
+        final LinearLayout servers = Ui.vbox(c);
+        servers.addView(Ui.loading(c));
+        l.addView(servers);
         holder.addView(scroll(l));
+        loadDms(dms);
+        loadServers(servers);
+    }
+
+    private void loadServers(final LinearLayout list) {
         async(() -> {
             JSONArray mem = Api.rest("GET", "server_members?select=server_id&user_id=eq." + Http.enc(Auth.userId), null, true);
             if (mem.length() == 0) return new JSONArray();
@@ -118,7 +170,7 @@ final class ChatHomeScreen extends Screen {
         }, (rows, e) -> {
             list.removeAllViews();
             if (e != null) { list.addView(Ui.state(c, "alert", "Couldn't load servers", msg(e))); return; }
-            if (rows.length() == 0) { list.addView(Ui.state(c, "users", "No servers yet", "Join or create servers on the 360 website. They appear here.")); return; }
+            if (rows.length() == 0) { list.addView(Ui.text(c, "You haven't joined any servers yet. Join some on the 360 website and they'll show up here.", 12.5f, Ui.MUT, false)); return; }
             for (int i = 0; i < rows.length(); i++) {
                 final JSONObject o = rows.optJSONObject(i);
                 if (o == null) continue;
@@ -126,6 +178,76 @@ final class ChatHomeScreen extends Screen {
                 list.addView(roomRow(name, J.s(o, "description"), "users", () -> a.push(new ServerScreen(id, name))));
             }
         });
+    }
+
+    private void loadDms(final LinearLayout list) {
+        async(() -> {
+            JSONArray part = Api.rest("GET", "dm_participants?select=dm_id&user_id=eq." + Http.enc(Auth.userId), null, true);
+            if (part.length() == 0) return new JSONArray[]{new JSONArray(), new JSONArray()};
+            StringBuilder ids = new StringBuilder();
+            for (int i = 0; i < part.length(); i++) { if (i > 0) ids.append(','); ids.append(part.getJSONObject(i).getString("dm_id")); }
+            JSONArray dms = Api.rest("GET", "direct_messages?select=*&id=in.(" + ids + ")&order=updated_at.desc", null, true);
+            Set<String> peers = new HashSet<>();
+            for (int i = 0; i < dms.length(); i++) {
+                JSONObject d = dms.getJSONObject(i);
+                String other = Auth.userId.equals(J.s(d, "user_a")) ? J.s(d, "user_b") : J.s(d, "user_a");
+                if (!other.isEmpty()) peers.add(other);
+            }
+            JSONArray profs = new JSONArray();
+            if (!peers.isEmpty()) {
+                StringBuilder pi = new StringBuilder();
+                for (String p : peers) { if (pi.length() > 0) pi.append(','); pi.append(p); }
+                profs = Api.rest("GET", "profiles?select=id,username,avatar_url,first_name,last_name&id=in.(" + pi + ")", null, true);
+            }
+            return new JSONArray[]{dms, profs};
+        }, (res, e) -> {
+            list.removeAllViews();
+            if (e != null) { list.addView(Ui.state(c, "alert", "Couldn't load messages", msg(e))); return; }
+            Map<String, String> names = new HashMap<>();
+            for (int i = 0; i < res[1].length(); i++) { JSONObject p = res[1].optJSONObject(i); if (p != null) names.put(J.s(p, "id"), Chat.displayName(p)); }
+            if (res[0].length() == 0) { list.addView(Ui.text(c, "No conversations yet. Tap New message to start one.", 12.5f, Ui.MUT, false)); return; }
+            for (int i = 0; i < res[0].length(); i++) {
+                final JSONObject d = res[0].optJSONObject(i);
+                if (d == null) continue;
+                String other = Auth.userId.equals(J.s(d, "user_a")) ? J.s(d, "user_b") : J.s(d, "user_a");
+                final String title = !J.s(d, "name").isEmpty() ? J.s(d, "name") : other.isEmpty() ? "Group chat" : names.containsKey(other) ? names.get(other) : "Direct message";
+                final String id = J.s(d, "id");
+                list.addView(roomRow(title, "Updated " + Fmt.rel(J.s(d, "updated_at")) + " ago", "chat", () -> a.push(new ChatRoomScreen(new Chat.Room(Chat.Room.DM, id, title)))));
+            }
+        });
+    }
+
+    /** Same flow as the website: find the person by username or email, reuse an existing DM, otherwise create one. */
+    private void newDm() {
+        final EditText who = Ui.input(c, "Username or email");
+        LinearLayout w = Ui.vbox(c); w.setPadding(Ui.dp(20), Ui.dp(8), Ui.dp(20), 0); w.addView(who);
+        new android.app.AlertDialog.Builder(a).setTitle("New message").setView(w).setNegativeButton("Cancel", null).setPositiveButton("Start chat", (d, x) -> {
+            final String q = who.getText().toString().trim();
+            if (q.isEmpty()) return;
+            async(() -> {
+                String col = q.contains("@") ? "email" : "username";
+                JSONArray r = Api.rest("GET", "profiles?select=id,username,first_name,last_name&" + col + "=ilike." + Http.enc(q) + "&limit=1", null, true);
+                if (r.length() == 0) throw new Exception("No user found for \"" + q + "\".");
+                JSONObject other = r.getJSONObject(0);
+                String oid = J.s(other, "id");
+                if (oid.equals(Auth.userId)) throw new Exception("You can't message yourself.");
+                String me = Auth.userId;
+                String cond = "(and(user_a.eq." + me + ",user_b.eq." + oid + "),and(user_a.eq." + oid + ",user_b.eq." + me + "))";
+                JSONArray ex = Api.rest("GET", "direct_messages?select=id&or=" + Http.enc(cond) + "&limit=1", null, true);
+                String dmId;
+                if (ex.length() > 0) dmId = ex.getJSONObject(0).getString("id");
+                else {
+                    JSONArray created = Api.rest("POST", "direct_messages", new JSONObject().put("user_a", me).put("user_b", oid).put("created_by", me), true);
+                    dmId = created.getJSONObject(0).getString("id");
+                    JSONArray parts = new JSONArray().put(new JSONObject().put("dm_id", dmId).put("user_id", me)).put(new JSONObject().put("dm_id", dmId).put("user_id", oid));
+                    Api.rest("POST", "dm_participants", parts, false);
+                }
+                return new String[]{dmId, Chat.displayName(other)};
+            }, (res, e) -> {
+                if (e != null) { toast(msg(e)); return; }
+                a.push(new ChatRoomScreen(new Chat.Room(Chat.Room.DM, res[0], res[1])));
+            });
+        }).show();
     }
 
     private View roomRow(String name, String sub, String icon, final Runnable go) {
@@ -167,7 +289,7 @@ final class ServerScreen extends Screen {
                     return c1 != 0 ? c1 : J.s(x, "name").compareToIgnoreCase(J.s(y, "name"));
                 }
             });
-            if (chans.isEmpty()) { a.push(new ChatRoomScreen(name, null, id)); return; }   // servers without channels chat at server level
+            if (chans.isEmpty()) { a.push(new ChatRoomScreen(new Chat.Room(Chat.Room.SERVER, id, name))); return; }   // servers without channels chat at server level
             for (final JSONObject o : chans) {
                 LinearLayout r = Ui.hbox(c);
                 r.setBackground(Ui.ripple(Ui.shape(Ui.CARD, 14, Ui.LINE)));
@@ -176,7 +298,7 @@ final class ServerScreen extends Screen {
                 r.setClickable(true);
                 r.addView(Ui.icon(c, "hash", 18, Ui.ACC), Ui.lp(Ui.dp(18), Ui.dp(18), 0, 0, 12, 0));
                 r.addView(Ui.text(c, J.s(o, "name", "channel"), 15.5f, Ui.TXT, true));
-                r.setOnClickListener(v -> a.push(new ChatRoomScreen("#" + J.s(o, "name", "channel"), J.s(o, "id"), id)));
+                r.setOnClickListener(v -> a.push(new ChatRoomScreen(new Chat.Room(Chat.Room.CHANNEL, J.s(o, "id"), "#" + J.s(o, "name", "channel")))));
                 list.addView(r);
             }
         });
@@ -185,20 +307,21 @@ final class ServerScreen extends Screen {
 }
 
 final class ChatRoomScreen extends Screen {
-    private final String roomTitle, channelId, serverId;
+    private final Chat.Room room;
     private final Handler h = new Handler(Looper.getMainLooper());
     private LinearLayout list;
     private ScrollView sv;
     private EditText input;
+    private final List<JSONObject> earlier = new ArrayList<>(), latest = new ArrayList<>();
     private String lastKey = "";
-    private boolean first = true, sending;
+    private boolean first = true, sending, noMoreEarlier;
     private JSONObject profile;
 
-    ChatRoomScreen(String title, String channelId, String serverId) { this.roomTitle = title; this.channelId = channelId; this.serverId = serverId; }
-    @Override String title() { return roomTitle; }
+    ChatRoomScreen(Chat.Room room) { this.room = room; }
+    @Override String title() { return room.title; }
 
     private final Runnable poll = new Runnable() {
-        @Override public void run() { if (!alive) return; load(); h.postDelayed(this, 4000); }
+        @Override public void run() { if (!alive) return; load(); h.postDelayed(this, 3000); }
     };
 
     @Override View build() {
@@ -212,7 +335,7 @@ final class ChatRoomScreen extends Screen {
 
         LinearLayout bar = Ui.hbox(c);
         bar.setPadding(Ui.dp(12), Ui.dp(6), Ui.dp(12), Ui.dp(10));
-        input = Ui.input(c, "Message " + roomTitle);
+        input = Ui.input(c, "Message " + room.title);
         input.setSingleLine(false); input.setMaxLines(4);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         input.setLayoutParams(Ui.lp(0, Ui.WRAP, 0, 0, 8, 0));
@@ -231,18 +354,11 @@ final class ChatRoomScreen extends Screen {
         return root;
     }
 
-    /** Newest 60 messages for this room. Falls back to simpler filters if a column is missing. */
-    private JSONArray fetch() throws Exception {
-        String scope = channelId != null ? "channel_id=eq." + Http.enc(channelId)
-            : serverId != null ? "server_id=eq." + Http.enc(serverId) + "&channel_id=is.null"
-            : "channel_id=is.null&server_id=is.null";
-        String[] attempts = {
-            "messages?select=*&" + scope + "&thread_id=is.null&deleted_at=is.null&order=created_at.desc&limit=60",
-            "messages?select=*&" + scope + "&deleted_at=is.null&order=created_at.desc&limit=60",
-            "messages?select=*&" + scope + "&order=created_at.desc&limit=60",
-        };
+    /** Newest 50 (or 50 older than `before`). Falls back to simpler filters if a column is missing. */
+    private JSONArray fetch(String before) throws Exception {
         Exception last = null;
-        for (String path : attempts) {
+        for (String scope : room.scopes()) {
+            String path = room.table() + "?select=*&" + scope + (before == null ? "" : "&created_at=lt." + Http.enc(before)) + "&order=created_at.desc&limit=50";
             try { return Api.rest("GET", path, null, true); }
             catch (Api.ApiError e) { last = e; if (e.code != 400) throw e; }
         }
@@ -250,21 +366,49 @@ final class ChatRoomScreen extends Screen {
     }
 
     private void load() {
-        async(() -> fetch(), (rows, e) -> {
+        async(() -> fetch(null), (rows, e) -> {
             if (e != null) {
                 if (first) { list.removeAllViews(); list.addView(Ui.state(c, "alert", "Couldn't load messages", msg(e))); }
                 return;
             }
             JSONObject top = rows.length() > 0 ? rows.optJSONObject(0) : null;
-            String key = rows.length() + ":" + (top == null ? "" : J.s(top, "id"));
+            String key = rows.length() + ":" + (top == null ? "" : J.s(top, "id")) + ":" + earlier.size();
             if (!first && key.equals(lastKey)) return;
             lastKey = key;
+            latest.clear();
+            for (int i = rows.length() - 1; i >= 0; i--) if (rows.optJSONObject(i) != null) latest.add(rows.optJSONObject(i));
             boolean stick = first || sv.getScrollY() + sv.getHeight() >= list.getHeight() - Ui.dp(80);
             first = false;
-            list.removeAllViews();
-            if (rows.length() == 0) { list.addView(Ui.state(c, "chat", "No messages yet", "Say hello.")); return; }
-            for (int i = rows.length() - 1; i >= 0; i--) if (rows.optJSONObject(i) != null) list.addView(bubble(rows.optJSONObject(i)));
-            if (stick) sv.post(() -> sv.fullScroll(View.FOCUS_DOWN));
+            paint(stick);
+        });
+    }
+
+    private void paint(boolean stickBottom) {
+        list.removeAllViews();
+        Set<String> seen = new HashSet<>();
+        List<JSONObject> all = new ArrayList<>();
+        for (JSONObject o : earlier) if (seen.add(J.s(o, "id"))) all.add(o);
+        for (JSONObject o : latest) if (seen.add(J.s(o, "id"))) all.add(o);
+        if (all.isEmpty()) { list.addView(Ui.state(c, "chat", "No messages yet", "Say hello.")); return; }
+        if (latest.size() >= 50 && !noMoreEarlier) {
+            final TextView more = Ui.button(c, "Load earlier messages", 1);
+            more.setOnClickListener(v -> loadEarlier(more, all.get(0)));
+            list.addView(more);
+        }
+        for (JSONObject o : all) list.addView(bubble(o));
+        if (stickBottom) sv.post(() -> sv.fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void loadEarlier(final TextView btn, final JSONObject oldest) {
+        btn.setEnabled(false); btn.setText("Loading\u2026");
+        final int before = sv.getScrollY();
+        async(() -> fetch(J.s(oldest, "created_at")), (rows, e) -> {
+            if (e != null) { btn.setEnabled(true); btn.setText("Load earlier messages"); toast(msg(e)); return; }
+            if (rows.length() < 50) noMoreEarlier = true;
+            for (int i = 0; i < rows.length(); i++) if (rows.optJSONObject(i) != null) earlier.add(0, rows.optJSONObject(i));
+            Collections.sort(earlier, new Comparator<JSONObject>() { @Override public int compare(JSONObject x, JSONObject y) { return J.s(x, "created_at").compareTo(J.s(y, "created_at")); } });
+            lastKey = "";
+            paint(false);
         });
     }
 
@@ -301,7 +445,7 @@ final class ChatRoomScreen extends Screen {
             MdView.render(this, md, text, Ui.TXT, 14.5f);
             body.addView(md);
         }
-        String file = J.s(m, "file_url");
+        final String file = J.s(m, "file_url");
         if (file.startsWith("http") && file.matches("(?i).*\\.(png|jpe?g|gif|webp)(\\?.*)?$")) {
             ImageView iv = new ImageView(c);
             iv.setAdjustViewBounds(true); iv.setScaleType(ImageView.ScaleType.FIT_START);
@@ -320,9 +464,12 @@ final class ChatRoomScreen extends Screen {
         if (mine) row.setOnLongClickListener(v -> {
             new android.app.AlertDialog.Builder(a).setItems(new String[]{"Delete message", "Copy text"}, (d, i) -> {
                 if (i == 1) { TranslatorScreen.copyText(c, J.s(m, "text")); toast("Copied"); return; }
-                async(() -> Api.rest("PATCH", "messages?id=eq." + Http.enc(J.s(m, "id")) + "&user_id=eq." + Http.enc(Auth.userId), new JSONObject().put("deleted_at", NoteTime.iso()), false), (r, e) -> {
-                    if (e != null) toast("Couldn't delete: " + msg(e)); else { lastKey = ""; load(); }
-                });
+                async(() -> {
+                    String path = room.table() + "?id=eq." + Http.enc(J.s(m, "id")) + "&user_id=eq." + Http.enc(Auth.userId);
+                    if (room.kind == Chat.Room.DM) Api.rest("DELETE", path, null, false);
+                    else Api.rest("PATCH", path, new JSONObject().put("deleted_at", NoteTime.iso()), false);
+                    return Boolean.TRUE;
+                }, (r, e) -> { if (e != null) toast("Couldn't delete: " + msg(e)); else { lastKey = ""; earlier.remove(m); load(); } });
             }).show();
             return true;
         });
@@ -339,12 +486,12 @@ final class ChatRoomScreen extends Screen {
         sending = true; input.setText("");
         final JSONObject p = profile;
         async(() -> {
-            JSONObject row = new JSONObject().put("user_id", Auth.userId).put("username", Chat.displayName(p))
-                .put("avatar_url", p.isNull("avatar_url") ? JSONObject.NULL : J.s(p, "avatar_url", null))
-                .put("tag", J.s(p, "tag", "")).put("role", J.s(p, "role", "user")).put("text", text);
-            if (channelId != null) row.put("channel_id", channelId);
-            if (serverId != null) row.put("server_id", serverId);
-            Api.rest("POST", "messages", row, false);
+            JSONObject row = Chat.base(p, text);
+            room.scope(row);
+            Api.rest("POST", room.table(), row, false);
+            if (room.kind == Chat.Room.DM) {
+                try { Api.rest("PATCH", "direct_messages?id=eq." + Http.enc(room.id), new JSONObject().put("updated_at", NoteTime.iso()), false); } catch (Exception ignored) { }
+            }
             return Boolean.TRUE;
         }, (r, e) -> {
             sending = false;
