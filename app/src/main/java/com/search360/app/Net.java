@@ -170,6 +170,18 @@ final class Api {
         ApiError at(String w) { where = w; return this; }
     }
 
+    /**
+     * The database serves several schemas and its default is "api", but all the app's tables live in "public".
+     * supabase-js sends these two headers on every call; without them every table lookup fails with
+     * "Could not find the table 'api.<name>' in the schema cache".
+     */
+    static final String SCHEMA = "public";
+    static Map<String, String> profile(Map<String, String> h) {
+        h.put("Accept-Profile", SCHEMA);     // GET / HEAD
+        h.put("Content-Profile", SCHEMA);    // POST / PATCH / DELETE
+        return h;
+    }
+
     /** The website sends BOTH headers; functions that verify JWTs reject apikey-only calls. */
     static Map<String, String> headers(boolean json) {
         Map<String, String> h = new HashMap<>();
@@ -211,10 +223,10 @@ final class Api {
     /** PostgREST call. `path` like "notes?select=*&order=updated_at.desc". Returns rows (empty for minimal responses). */
     static JSONArray rest(String method, String path, Object body, boolean returnRows) throws Exception {
         Auth.refreshIfNeeded();
-        Map<String, String> h = headers(body != null);
+        Map<String, String> h = profile(headers(body != null));
         h.put("Prefer", returnRows ? "return=representation" : "return=minimal");
         Http.Resp r = Http.request(method, SB + "/rest/v1/" + path, h, body == null ? null : body.toString());
-        if (r.code == 401 && Auth.signedIn() && Auth.forceRefresh()) { h = headers(body != null); h.put("Prefer", returnRows ? "return=representation" : "return=minimal"); r = Http.request(method, SB + "/rest/v1/" + path, h, body == null ? null : body.toString()); }
+        if (r.code == 401 && Auth.signedIn() && Auth.forceRefresh()) { h = profile(headers(body != null)); h.put("Prefer", returnRows ? "return=representation" : "return=minimal"); r = Http.request(method, SB + "/rest/v1/" + path, h, body == null ? null : body.toString()); }
         if (r.code >= 400) {
             JSONObject j = parse(r.body);
             throw new ApiError(r.code, J.s(j, "message", "Request failed (" + r.code + ")"));

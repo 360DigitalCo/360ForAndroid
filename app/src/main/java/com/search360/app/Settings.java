@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /** Turns an HTTP status + body into something a person can act on. Pure, so it is unit-tested. */
 final class Diag {
@@ -142,7 +143,7 @@ final class DiagnosticsScreen extends Screen {
     private LinearLayout list;
     private TextView summary;
     private final List<String> report = new ArrayList<>();
-    private int okCount, total;
+    private int okCount, total, gen;
 
     @Override String title() { return "Connection check"; }
 
@@ -163,7 +164,7 @@ final class DiagnosticsScreen extends Screen {
             toast("Report copied");
         });
         l.addView(btns);
-        l.addView(Ui.text(c, "Anything marked Not found means that function or table does not exist on the server this app is talking to. Blocked on a table means it needs you to be signed in.", 12, Ui.MUT, false));
+        l.addView(Ui.text(c, "Database schema in use: " + Api.SCHEMA + ". Anything marked Not found means that function or table does not exist on the server this app is talking to. Blocked on a table means it needs you to be signed in.", 12, Ui.MUT, false));
         run();
         return scroll(l);
     }
@@ -176,6 +177,7 @@ final class DiagnosticsScreen extends Screen {
     private static Probe table(String t) { Probe p = new Probe(); p.name = t; p.kind = "table"; p.path = t + "?select=*&limit=1"; p.needsAuth = true; return p; }
 
     private void run() {
+        final int my = ++gen;
         list.removeAllViews(); report.clear(); okCount = 0; total = 0;
         summary.setText("Testing\u2026");
         final List<Probe> probes = new ArrayList<>();
@@ -194,18 +196,21 @@ final class DiagnosticsScreen extends Screen {
         Http.POOL.execute(() -> {
             try { Auth.refreshIfNeeded(); } catch (Exception ignored) { }
             // Google CSE directly (what search and images rely on)
-            post("Google CSE (web + images)", "service", cseProbe(), false);
+            String cse = cseProbe();
+            post(my, "Google CSE (web + images)", "service", cse, cse.equals("OK"));
             for (Probe p : probes) {
-                if (p.needsAuth && !Auth.signedIn()) { post(p.name, p.kind, "Skipped: sign in to test this table", true); continue; }
+                if (p.needsAuth && !Auth.signedIn()) { post(my, p.name, p.kind, "Skipped: sign in to test this table", true); continue; }
                 String detail; boolean ok;
                 try {
                     String url = Api.SB + (p.kind.equals("function") ? "/functions/v1/" : "/rest/v1/") + p.path;
-                    Http.Resp r = Http.request(p.method, url, Api.headers(p.body != null), p.body == null ? null : p.body.toString());
+                    Map<String, String> hd = Api.headers(p.body != null);
+                    if (p.kind.equals("table")) Api.profile(hd);
+                    Http.Resp r = Http.request(p.method, url, hd, p.body == null ? null : p.body.toString());
                     ok = Diag.ok(r.code); detail = Diag.detail(r.code, r.body);
                 } catch (Exception e) { ok = false; detail = "No connection"; }
-                post(p.name, p.kind + (p.optional ? ", optional" : ""), detail, ok || (p.optional && detail.startsWith("Not found")));
+                post(my, p.name, p.kind + (p.optional ? ", optional" : ""), detail, ok || (p.optional && detail.startsWith("Not found")));
             }
-            Http.MAIN.post(() -> { if (alive) summary.setText(okCount + " of " + total + " reachable" + (okCount == total ? ". Everything the app needs is available." : ". Items in red need attention.")); });
+            Http.MAIN.post(() -> { if (alive && my == gen) summary.setText(okCount + " of " + total + " reachable" + (okCount == total ? ". Everything the app needs is available." : ". Items in red need attention.")); });
         });
     }
 
@@ -213,9 +218,9 @@ final class DiagnosticsScreen extends Screen {
         try { Cse.search("test", 0, false); return "OK"; } catch (Exception e) { return "Failed: " + (e.getMessage() == null ? "unknown" : e.getMessage()); }
     }
 
-    private void post(final String name, final String kind, final String detail, final boolean good) {
+    private void post(final int my, final String name, final String kind, final String detail, final boolean good) {
         Http.MAIN.post(() -> {
-            if (!alive) return;
+            if (!alive || my != gen) return;
             total++; if (good && !detail.startsWith("Skipped")) okCount++;
             report.add((good ? "[ok]   " : "[FAIL] ") + kind + " " + name + " - " + detail);
             LinearLayout r = Ui.hbox(c);
